@@ -1,10 +1,13 @@
 "use strict";
 
 const express = require("express");
+const { createPlayerServerFilter } = require("../lib/playerServerFilter");
 const { TFC_UNITS_PER_METER } = require("../pickup/flagCarry");
 
-function createPickupFlagCarryRouter({ db, logger = console }) {
+function createPickupFlagCarryRouter({ db: database, logger = console }) {
   const router = express.Router();
+  const { db, middleware: serverFilter } = createPlayerServerFilter(database);
+  router.use(serverFilter);
 
   function filtersFor(req) {
     const playerId = String(req.params.playerId || "");

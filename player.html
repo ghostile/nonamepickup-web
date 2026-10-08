@@ -12,9 +12,9 @@
   <link rel="shortcut icon" href="/assets/images/favicon.ico">
   <link rel="stylesheet" href="assets/css/app.css?v=20261004nav1">
   <link rel="stylesheet" href="assets/css/style.css?v=20260618i">
-  <link rel="stylesheet" href="assets/css/player.css?v=20260930rivals3">
+  <link rel="stylesheet" href="assets/css/player.css?v=20261006servers1">
   <script src="assets/js/main.js?v=20261004nav1" defer></script>
-  <script src="assets/js/player.js?v=20260930rivals1" defer></script>
+  <script src="assets/js/player.js?v=20261006servers1" defer></script>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Orbitron:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
@@ -55,6 +55,12 @@
 
 <main class="player-v3-main player2-main">
   <section class="player-v3-shell player2-shell">
+
+    <div class="player-server-controls v3-card">
+      <label for="player-server-select">Server</label>
+      <select id="player-server-select" disabled><option value="">All servers</option></select>
+      <span id="player-server-note" role="status">Loading servers...</span>
+    </div>
 
     <section class="player-v3-hero player2-hero" aria-label="Player overview">
       <div class="identity-card player2-overview-card">

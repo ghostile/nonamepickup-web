@@ -2,9 +2,10 @@
 "use strict";
 
 const express = require("express");
+const { createPlayerServerFilter } = require("../lib/playerServerFilter");
 
 function createPlayersRouter({
-  db,
+  db: database,
   cleanString,
   positiveInt,
   sendError,
@@ -17,6 +18,8 @@ function createPlayersRouter({
   cached
 }) {
   const router = express.Router();
+  const { db, middleware: serverFilter } = createPlayerServerFilter(database);
+  router.use(serverFilter);
 router.get("/players/search",(req,res)=>{
   try{
     const query=cleanString(req.query.q,100);
@@ -1229,14 +1232,20 @@ router.get("/player/:discordId/v3",(req,res)=>{
       ORDER BY rc.ts ASC
     `).all(discordId);
 
-    let peakElo=Number(player.rating||0);
+    // Elo is global: calculate the career peak outside the server-scoped database.
+    const globalPeak=database.prepare(`
+      SELECT MAX(MAX(COALESCE(rc.before, 0), COALESCE(rc.after, 0))) AS peak
+      FROM rating_changes rc
+      JOIN matches m ON m.match_id=rc.match_id
+      WHERE rc.player_id=? AND m.status='completed'
+    `).get(discordId);
+    const peakElo=Math.max(Number(player.rating||0),Number(globalPeak?.peak||0));
     let bestStreak=0;
     let currentStreak=0;
     let firstMatchTs=null;
     let lastMatchTs=null;
 
     for(const row of historyRows){
-      peakElo=Math.max(peakElo,Number(row.after||row.before||0));
 
       if(!firstMatchTs)firstMatchTs=Number(row.ts||0);
       lastMatchTs=Number(row.ts||0)||lastMatchTs;
@@ -1374,6 +1383,8 @@ router.get("/player/:discordId/v3",(req,res)=>{
     res.json({
       ok:true,
       data:{
+        servers: req.playerServers || [],
+        server: req.query.server || null,
         player:{
           id:String(player.player_id),
           name:player.display_name||String(player.player_id),

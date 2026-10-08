@@ -65,6 +65,12 @@ const canonicalFetchJSON = nn.fetchJSON;
 const pageSupporterBadge = nn.supporterBadge || (() => "");
 
 async function fetchJSON(url){
+  const server=new URLSearchParams(window.location.search).get("server");
+  if(server && url.startsWith("/api/player/")){
+    const filteredUrl=new URL(url,window.location.origin);
+    filteredUrl.searchParams.set("server",server);
+    url=filteredUrl.pathname+filteredUrl.search;
+  }
   if(typeof canonicalFetchJSON==="function"){
     const result=await canonicalFetchJSON(url);
     return result?.ok===false
@@ -294,11 +300,23 @@ async function loadPlayerV3(){
   ]);
 
   if(!v3.ok||!v3.data){
-    setText("player-name-v3","Player not found");
+    setText("player-name-v3","Player stats unavailable");
+    const serverSelect=qs("player-server-select");
+    if(serverSelect)serverSelect.disabled=false;
+    setText("player-server-note","Could not load stats. Select All servers to retry.");
     return;
   }
 
   const data=v3.data;
+  const serverSelect=qs("player-server-select");
+  if(serverSelect){
+    serverSelect.replaceChildren(new Option("All servers",""),...(data.servers||[]).map(server=>new Option(server,server)));
+    serverSelect.value=data.server||"";
+    serverSelect.disabled=false;
+    setText("player-server-note",data.servers?.length
+      ? "Filters match and combat stats. Current Elo, peak Elo and rank are overall."
+      : "No historical server metadata available.");
+  }
   const player=data.player||{};
   const ratings=data.ratings||{};
   const h=data.hampalyzer||{};
@@ -2861,6 +2879,12 @@ function renderPlayerWeaponList(rows){
 }
 
 function init(){
+  qs("player-server-select")?.addEventListener("change",event=>{
+    const url=new URL(window.location.href);
+    if(event.target.value)url.searchParams.set("server",event.target.value);
+    else url.searchParams.delete("server");
+    window.location.assign(url.href);
+  });
   bindEvents();
   loadPlayer();
 }
