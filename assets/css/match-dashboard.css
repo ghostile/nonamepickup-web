@@ -84,7 +84,7 @@
 .analytics-player.analytics-player-mvp{border-color:#a7853c;background:#17170f;box-shadow:inset 3px 0 #d8b15d}
 .analytics-player.analytics-player-mvp>summary:hover,.analytics-player.analytics-player-mvp[open]>summary{background:#252014;border-bottom-color:#a7853c}
 #match-analytics .analytics-player-mvp .analytics-player-name{color:#f4d58a}
-.analytics-mvp-badge{flex-shrink:0;border:1px solid #a7853c;border-radius:3px;padding:2px 4px;background:#352b13;color:#ffe3a1;font-size:8px;font-weight:800;line-height:1;white-space:nowrap;letter-spacing:.04em}
+.analytics-mvp-badge{display:inline-flex;margin-bottom:4px;border:1px solid #a7853c;border-radius:3px;padding:2px 4px;background:#352b13;color:#ffe3a1;font-size:8px;font-weight:800;line-height:1;white-space:nowrap;letter-spacing:.04em}
 @media(max-width:760px){.analytics-player-mvp .analytics-player-identity{background:#17170f}}
 .analytics-player-class{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#63c6ff;font-size:10px;margin-top:5px}
 .analytics-player-team.red .analytics-player-class{color:#ff92a5}
