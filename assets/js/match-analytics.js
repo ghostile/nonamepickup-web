@@ -171,7 +171,7 @@ window.matchDashboard = (() => {
       root.querySelectorAll(".analytics-team-summary").forEach(p=>p.hidden=filter!=="both"&&p.dataset.analyticsTeam!==filter);
       root.querySelector(".analytics-summaries").classList.toggle("single-team",filter!=="both");
       content.setAttribute("aria-labelledby",`analytics-tab-${active}`);
-      if(active==="overview")content.innerHTML=`<div class="analytics-players ${filter!=="both"?"single-team":""}">${data.teams.filter(t=>filter==="both"||filter===t.color).map(t=>playerTeam(t,data.roundIds)).join("")}</div><div class="analytics-support">${breakdown(data,"class",filter)}${breakdown(data,"weapon",filter)}${damage(data,filter)}${roundPanel(data,filter)}</div><p class="analytics-note analytics-data-note">Full match totals. D and K/D exclude suicides, matching the API. DMG = enemy damage · TDMG = friendly damage · CJ = concussion jumps · weapon shares use returned weapon kills. — = unavailable.</p>`;
+      if(active==="overview")content.innerHTML=`<div class="analytics-players ${filter!=="both"?"single-team":""}">${data.teams.filter(t=>filter==="both"||filter===t.color).map(t=>playerTeam(t,data.roundIds)).join("")}</div><div class="analytics-support">${breakdown(data,"class",filter)}${breakdown(data,"weapon",filter)}${damage(data,filter)}${roundPanel(data,filter)}</div>`;
       if(active==="comparison")content.innerHTML=comparison(data,filter);
       if(active==="timeline")content.innerHTML=timeline(data,filter);
       if(active==="pace")content.innerHTML=pace(data,filter);
