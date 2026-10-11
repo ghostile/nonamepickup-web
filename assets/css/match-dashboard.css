@@ -6,7 +6,7 @@
 .match-dashboard-page .match-shell{padding:0!important}
 .match-dashboard-page .match-top{margin-bottom:0}
 /* Temporarily hidden; remove this rule to restore the original round section. */
-.match-dashboard-page :is(.match-links,.rounds-layout){display:none}
+.match-dashboard-page :is(.match-links,.rounds-layout){display:none!important}
 @media(min-width:901px){.match-dashboard-page main.match-main{width:min(calc(100vw - (var(--page-gutter-desktop) * 2 * var(--standard-desktop-ui-scale))),calc(var(--page-main-width) * var(--standard-desktop-ui-scale)))!important}.match-dashboard-page .match-top-grid{zoom:var(--standard-desktop-ui-scale)}}
 @media(min-width:901px){
   .match-dashboard-page .match-top-grid .score-map{font-size:18px;margin-bottom:6px}
