@@ -605,7 +605,8 @@ function renderEngineerBuildings(rows){
   const hasSentry=["1","2","3","unknown"].some(level=>
     ["kills","seconds"].some(metric=>total(level,metric)!==null));
   if(!hasSentry&&dispenser===null)return"";
-  const notes=[...new Set(rows.flatMap(row=>Array.isArray(row.notes)?row.notes:[]))];
+  const notes=[...new Set(rows.flatMap(row=>Array.isArray(row.notes)?row.notes:[]))]
+    .filter(note=>note!=="Engineer intervals are unavailable or incomplete; engineer-relative uptime is unknown.");
   return `
     <section class="match-buildings" aria-label="Engineer buildings">
       <h3>Engineer Buildings</h3>
