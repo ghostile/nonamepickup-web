@@ -146,6 +146,30 @@ function createMatchesRouter({
       let roundMvps=[];
       let flagCarrierKills=[];
       let capTimeline=[];
+      let roundWeaponStats=[];
+
+      // Event rows retain round information that match_player_weapons totals lack.
+      // Keep the existing full-match weapon response unchanged for other pages.
+      try{
+        roundWeaponStats=db.prepare(`
+          SELECT
+            round_num,
+            attacker_key AS player_key,
+            attacker_steam_id AS steam_id,
+            MAX(attacker_name) AS display_name,
+            weapon,
+            COUNT(*) AS kills
+          FROM match_kill_events
+          WHERE match_id=? AND round_num>0
+            AND is_enemy_kill=1 AND COALESCE(is_team_kill,0)=0
+          GROUP BY round_num,attacker_key,attacker_steam_id,weapon
+          ORDER BY round_num,kills DESC,player_key,weapon
+        `).all(matchId);
+      }catch(weaponEventError){
+        if(!String(weaponEventError?.message||"").includes("no such table")){
+          logRouteError("[/api/match/:matchId round weapons]",weaponEventError);
+        }
+      }
 
       try{
         rounds=db.prepare(`
@@ -351,6 +375,14 @@ function createMatchesRouter({
           steam_id:w.steam_id,
           weapon:w.weapon,
           kills:Number(w.kills||0)
+        })),
+        round_weapon_stats:roundWeaponStats.map(w=>({
+          round_num:Number(w.round_num),
+          player_key:w.player_key,
+          steam_id:w.steam_id,
+          display_name:w.display_name,
+          weapon:w.weapon,
+          kills:Number(w.kills)
         })),
         rounds:rounds.map(r=>({
           round_num:Number(r.round_num||0),
