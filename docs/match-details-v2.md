@@ -77,13 +77,13 @@ Navy page, panel, and player surfaces provide tonal separation. Muted text suppo
 
 ## Typography
 
-Inter is the dashboard's reading and control face. Orbitron retains the existing match heading and score character. The match heading uses the frontmatter headline role on desktop and decreases to (30px) on mobile. Team summary scores use the team-score role; the hero scoreboard uses (30px).
+Inter is the dashboard's reading and control face. Orbitron retains the existing match heading and score character. Hero typography, rounded frame, borders, and glow come from the shared page-hero styles. Its background uses the actual match map screenshot through the existing map-image resolver; unavailable screenshots retain the shared banner fallback. Team summary scores retain the compact dashboard role.
 
 Panel headings use the title role. Player names use (11px, weight 700), class labels use (10px), and the dense metric labels use (7px). Round-table headers use (8px) and values use (10px). Supporting notes use (9px, line-height 1.5). Analytics and round tables use tabular numerals for reliable column comparison.
 
 ## Layout
 
-The main container is centered at `min(97vw, 1760px)`, with desktop vertical padding of (14px 0 24px). The match hero and score share a two-column header; each round has its own table. Team summaries and player sections use two equal columns with the team-gap token. Selecting one team changes the summary and player grids to one column.
+The main container is centered at `min(97vw, 1760px)`, with desktop vertical padding of (21px 0 24px). The match hero and score share a two-column header; each round has its own table. Team summaries and player sections use two equal columns with the team-gap token. Selecting one team changes the summary and player grids to one column.
 
 | Viewport | Team and round layout | Support panels and overflow |
 | --- | --- | --- |
@@ -101,7 +101,7 @@ The dashboard uses navy tonal layers and thin team/border strokes instead of pan
 
 ## Shapes
 
-Controls and player rows use the control radius, support panels use the panel radius, and team containers use the team radius. The hero is rectangular. Filters join into a segmented group with rounded outer ends. Compact bars use (2px) tracks and (1px) fills; capture markers are circles.
+Controls and player rows use the control radius, support panels use the panel radius, and team containers use the team radius. The hero uses the shared rounded page frame. Filters join into a segmented group with rounded outer ends. Compact bars use (2px) tracks and (1px) fills; capture markers are circles.
 
 ## Components
 
@@ -133,7 +133,7 @@ JSON exports the full match API response regardless of team selection. CSV expor
 
 ## Do's and Don'ts
 
-- Do preserve this match-only scope when modifying shared selectors or desktop scaling.
+- Do preserve the dashboard content density. Shared navigation renders at native size across pages; the match hero uses the standard desktop density and shared page-hero styles.
 - Do retain team labels, explicit metric definitions, keyboard access, and internal table scrolling.
 - Do show unavailable data as `—` and preserve complete-record checks for round-derived metrics.
 - Don't convert weapon kill counts into shots fired, weapon shares into aggregate kill shares, or pooled class time into elapsed match duration.

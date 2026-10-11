@@ -98,7 +98,12 @@ function renderMatch(m){
 	if (typeof window.setMapImageFromName === "function") {
 	  window.setMapImageFromName(qs("match-map-image"), mapName, {
 		containerSelector: ".match-map-wrap",
-		fallbackSrc: "assets/images/maps/NoMap.webp"
+		fallbackSrc: "assets/images/maps/NoMap.webp",
+		onLoad: (_loadedMap, src) => {
+		  if (qs("match-map-image")?.src === src && !src.includes("/NoMap.webp")) {
+		    root.querySelector(".match-top-grid").style.setProperty("--page-hero-image", `url(${JSON.stringify(src)})`);
+		  }
+		}
 	  });
 	}
 	  window.matchDashboard.mount(qs("match-analytics"),m);
