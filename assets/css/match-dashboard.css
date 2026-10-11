@@ -55,6 +55,7 @@
 .analytics-team-score h2{font-size:12px;font-weight:700;color:var(--analytics-blue);margin:0 0 4px;display:flex;align-items:center;gap:5px}
 .analytics-team-summary.red h2{color:var(--analytics-red)}
 .analytics-winner{display:inline-flex;align-items:center;gap:4px;color:#55e2b1;font-size:10px}
+.analytics-winner-trophy{font-size:16px;line-height:1}
 .analytics-team-score strong{font-family:Orbitron,sans-serif;font-weight:800;font-size:24px;line-height:1.1;color:#fff}
 .analytics-team-summary dl{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));flex:1;gap:7px 6px;margin:0}
 .analytics-team-summary dl div{display:flex;flex-direction:column-reverse;text-align:center;gap:2px;min-width:0}
@@ -167,13 +168,13 @@
 
 /* Keep dense match data readable at the browser's default zoom. */
 #match-analytics{font-size:15px}
-.analytics-tabs button,.analytics-back-link,.analytics-filter button,.analytics-download-links :is(button,a){font-size:14px}
+.analytics-tabs button,.analytics-back-link,.analytics-filter button,.analytics-download-links :is(button,a){font-size:12px}
 .analytics-filter>span{font-size:14px}
 .analytics-team-score h2,.analytics-player-team h2,.analytics-panel h2{font-size:16px}
 .analytics-winner,.analytics-player-team>header>span{font-size:13px}
 .analytics-team-summary dt,.analytics-player-columns{font-size:12px}
 .analytics-team-summary dd,#match-analytics .analytics-player-name{font-size:15px}
-.analytics-mvp-badge{font-size:12px}
+.analytics-mvp-badge{font-size:10px}
 .analytics-player-class{font-size:14px}
 .analytics-player-metrics dt{font-size:11px}
 .analytics-player-metrics dd,.analytics-weapon-mini{font-size:14px}

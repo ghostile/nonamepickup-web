@@ -93,7 +93,7 @@ window.matchDashboard = (() => {
   }
 
   function summary(team) {
-    return `<section class="analytics-team-summary ${team.color}" data-analytics-team="${team.color}" aria-label="${team.label} summary"><div class="analytics-team-score"><h2>${team.label}${team.context?` · ${team.context}`:""}${team.winner?'<span class="analytics-winner">Winner <img src="assets/images/icons/webp/trophy.webp" alt="" width="14" height="14"></span>':""}</h2><strong>${format(team.score)}</strong></div><dl>${fields.filter(([k])=>k!=="team_damage").map(([key,label,description])=>`<div title="${attr(description)}"><dt>${label}</dt><dd>${metric(team.totals,key)}</dd></div>`).join("")}</dl></section>`;
+    return `<section class="analytics-team-summary ${team.color}" data-analytics-team="${team.color}" aria-label="${team.label} summary"><div class="analytics-team-score"><h2>${team.label}${team.context?` · ${team.context}`:""}${team.winner?'<span class="analytics-winner">Winner <span class="analytics-winner-trophy" aria-hidden="true">🏆</span></span>':""}</h2><strong>${format(team.score)}</strong></div><dl>${fields.filter(([k])=>k!=="team_damage").map(([key,label,description])=>`<div title="${attr(description)}"><dt>${label}</dt><dd>${metric(team.totals,key)}</dd></div>`).join("")}</dl></section>`;
   }
 
   function weaponBars(rows) {
