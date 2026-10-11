@@ -126,8 +126,10 @@ window.matchDashboard = (() => {
     const time=e=>rounds?e.round_time_seconds:Number(e.time_seconds),displayTime=rounds?paceClock:clock;
     const x=s=>32+s/extent*476,y=n=>154-n/max*140;
     return `<svg class="analytics-capture-chart" viewBox="0 0 520 180" role="img" aria-label="Cumulative captures on the ${rounds?"round-relative":"full match"} clock; hover or focus capture points for details">${[0,1,2,3,4].map(i=>`<line class="chart-grid" x1="32" x2="508" y1="${y(max*i/4)}" y2="${y(max*i/4)}"/><text x="25" y="${y(max*i/4)+4}" text-anchor="end">${format(max*i/4,Number.isInteger(max*i/4)?0:1)}</text><text x="${x(extent*i/4)}" y="174" text-anchor="${i===0?"start":i===4?"end":"middle"}">${displayTime(extent*i/4)}</text>`).join("")}${groups.map(g=>visibleTeams.map(t=>{
+      const teamEvents=g.events.filter(e=>capTeamClass(e.team)===t.color);
+      if(!teamEvents.length)return "";
       let count=0,path=`M${x(0)},${y(0)}`;
-      const dots=g.events.filter(e=>capTeamClass(e.team)===t.color).map(e=>{count++;path+=` H${x(time(e))} V${y(count)}`;const title=`${g.id?`Round ${g.id} · `:""}${t.label} · Capture ${e.cap_num||count} · ${displayTime(time(e))}${e.capper_name?` · ${e.capper_name}`:""}`;return `<circle class="${t.color}" cx="${x(time(e))}" cy="${y(count)}" r="3" tabindex="0" data-capture="${attr(title)}" aria-label="${attr(title)}"><title>${esc(title)}</title></circle>`;}).join("");
+      const dots=teamEvents.map(e=>{count++;path+=` H${x(time(e))} V${y(count)}`;const title=`${g.id?`Round ${g.id} · `:""}${t.label} · Capture ${e.cap_num||count} · ${displayTime(time(e))}${e.capper_name?` · ${e.capper_name}`:""}`;return `<circle class="${t.color}" cx="${x(time(e))}" cy="${y(count)}" r="3" tabindex="0" data-capture="${attr(title)}" aria-label="${attr(title)}"><title>${esc(title)}</title></circle>`;}).join("");
       return `<path class="${t.color}" ${g.id?`data-capture-round="${g.id}" aria-label="Round ${g.id}, ${t.label}"`:""} d="${path} H${x(g.duration)}"/>${dots}`;
     }).join("")).join("")}</svg><p class="analytics-chart-detail" aria-live="polite">Cumulative captures · ${rounds?"round clock":"match clock"}</p>`;
   }
