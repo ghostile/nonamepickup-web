@@ -1,5 +1,5 @@
 :root{
-  --standard-desktop-ui-scale:.75;
+  --standard-desktop-ui-scale:1;
   --desktop-ui-scale:var(--standard-desktop-ui-scale);
   --tfc-blue:#4da6ff;
   --tfc-red:#ff5c5c;

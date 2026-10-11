@@ -851,7 +851,7 @@ filter:
   }
 }
 
-@media (max-width: 1450px) {
+@media (max-width: 1700px) {
   .home-hero-grid {
     grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr);
   }
