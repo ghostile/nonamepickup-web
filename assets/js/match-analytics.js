@@ -114,32 +114,10 @@ window.matchDashboard = (() => {
     return panel("Damage Comparison",specs.map(([label,get])=>pair(label,data.teams.map(t=>get(t.totals)),v=>format(v,label.includes("/")?1:0),"",filter)).join(""),"Enemy damage and friendly damage kept separate");
   }
 
-  // capTimeline uses concatenated gameplay time, not replay recording epochs.
-  // Build offsets from recorded round lengths; never assume a round duration.
-  function flagPaceRounds(data) {
-    let start=0;
-    const rounds=[];
-    for(const round of data.rounds.slice().sort((a,b)=>Number(a.round_num)-Number(b.round_num))){
-      const id=num(round.round_num),duration=num(round.duration_seconds);
-      if(id!==rounds.length+1||duration===null||duration<=0||data.rounds.filter(r=>num(r.round_num)===id).length!==1)break;
-      rounds.push({id,start,duration,end:start+duration,events:[]});
-      start+=duration;
-    }
-    const events=data.events.map(event=>{
-      const time=Number(event.time_seconds);
-      let round=rounds.find(r=>time>=r.start&&time<=r.end);
-      // The API has no round ID on captures. A shared boundary could be the
-      // previous round's final second or the next round's zero; do not guess.
-      if(round&&time===round.end&&data.roundIds.some(id=>id>round.id))round=null;
-      const relative={...event,round:round?.id??null,round_time_seconds:round?time-round.start:null};
-      if(round)round.events.push(relative);
-      return relative;
-    });
-    return {rounds,events};
-  }
-  const paceClock = seconds => seconds===null?"—":clock(seconds).padStart(5,"0");
+  const flagPaceRounds = data => window.nnCaptureTimeline.build(data.match,data.events);
+  const paceClock = window.nnCaptureTimeline.clock;
 
-  function captures(data,filter,rounds=null) {
+  function captures(data,filter,rounds=flagPaceRounds(data).rounds) {
     if(!data.events.length)return empty("No timestamped captures recorded");
     if(rounds&&!rounds.length)return empty("Round-relative capture times unavailable: recorded round boundaries are missing.");
     const groups=rounds?rounds.map(r=>({id:r.id,events:r.events,duration:r.duration})):[{id:null,events:data.events,duration:data.extent}];
@@ -153,7 +131,7 @@ window.matchDashboard = (() => {
       return `<path class="${t.color}" ${g.id?`data-capture-round="${g.id}" aria-label="Round ${g.id}, ${t.label}" ${g.id>1?`stroke-dasharray="${g.id*3} 4"`:""}`:""} d="${path} H${x(g.duration)}"/>${dots}`;
     }).join("")).join("")}</svg><p class="analytics-chart-detail" aria-live="polite">Cumulative captures · ${rounds?"round clock · "+rounds.map(r=>`R${r.id} ${r.id===1?"solid":"dashed"}`).join(" · "):"match clock"}</p>`;
   }
-  const roundPanel=(data,filter)=>panel("Round Performance",data.events.length?captures(data,filter):data.rounds.map(r=>pair(`Round ${r.round_num}`,[num(r.team1_score),num(r.team2_score)],format,"",filter)).join("")||empty("No round results"),data.events.length?"Cumulative captures · exact event timestamps":"Recorded round scores");
+  const roundPanel=(data,filter)=>panel("Round Performance",data.events.length?captures(data,filter):data.rounds.map(r=>pair(`Round ${r.round_num}`,[num(r.team1_score),num(r.team2_score)],format,"",filter)).join("")||empty("No round results"),data.events.length?"Cumulative captures · round-relative timestamps":"Recorded round scores");
   const comparison=(data,filter)=>panel("Team Comparison",fields.map(([key,,description])=>pair(description,data.teams.map(t=>t.totals[key]),v=>key==="flag_time_seconds"?clock(v):format(v,key==="kd"?2:0),"",filter)).join(""),"Full match totals · CJ = concussion jumps",true);
   function timeline(data,filter) {
     return `<div class="analytics-two-col">${data.teams.filter(t=>filter==="both"||filter===t.color).map(team=>panel(`${team.label} Round Timeline`,data.roundIds.map(id=>{

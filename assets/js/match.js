@@ -349,11 +349,11 @@ function capTeamLabel(team){
   return String(team||"Team");
 }
 
-function renderCapTimelineCard(capTimeline){
+function renderCapTimelineCard(capTimeline,match={}){
   if(!Array.isArray(capTimeline)||!capTimeline.length)return"";
 
-  const maxSeconds=15*60;
-  const events=[...capTimeline].sort((a,b)=>Number(a.time_seconds||0)-Number(b.time_seconds||0));
+  const {rounds,events,extent:maxSeconds}=window.nnCaptureTimeline.build(match,capTimeline);
+  if(!rounds.length)return '<section class="match-card cap-timeline-card"><h2>Flag Pace</h2><p>Round-relative times unavailable: recorded round boundaries are missing.</p></section>';
 
   return `
     <section class="match-card cap-timeline-card">
@@ -361,10 +361,10 @@ function renderCapTimelineCard(capTimeline){
         <h2>Flag Pace</h2>
         <span>Capture Timeline</span>
       </div>
-      <div class="cap-timeline-bar" aria-label="Capture timeline from 0 to 15 minutes">
+      <div class="cap-timeline-bar" aria-label="Round-relative capture timeline">
         <div class="cap-timeline-track">
-          ${events.map((event,index)=>{
-			  const seconds=Number(event.time_seconds||0);
+          ${events.filter(event=>event.round!==null).map((event,index)=>{
+			  const seconds=event.round_time_seconds;
 			  const left=Math.max(0,Math.min(100,(seconds/maxSeconds)*100));
 			  const teamClass=capTeamClass(event.team);
 			  const capNum=event.cap_num||"";
@@ -372,12 +372,12 @@ function renderCapTimelineCard(capTimeline){
 			  const capper = event.capper_name || event.capperName || "";
 
 			  const title =
-				`${capTeamLabel(event.team)} Capture #${capNum}` +
+				`R${event.round} · ${capTeamLabel(event.team)} Capture #${capNum}` +
 				(capper ? ` by ${capper}` : "");
 
 			  const ariaLabel=[
 				title,
-				event.time_text||matchFormatSeconds(event.time_seconds),
+				window.nnCaptureTimeline.clock(event.round_time_seconds),
 				event.score_after?`Score ${event.score_after}`:""
 			  ].filter(Boolean).join(" ");
 
@@ -397,18 +397,15 @@ function renderCapTimelineCard(capTimeline){
                 <span class="cap-marker-badge">${escapeHtml(capNum)}</span>
               </button>
               <div id="cap-detail-${index}" class="cap-detail ${teamClass}" hidden>
-                <strong>${escapeHtml(capTeamLabel(event.team))} Cap ${escapeHtml(capNum)}</strong>
-                <span>${escapeHtml(event.time_text||matchFormatSeconds(event.time_seconds))}</span>
+                <strong>R${event.round} · ${escapeHtml(capTeamLabel(event.team))} Cap ${escapeHtml(capNum)}</strong>
+                <span>${escapeHtml(window.nnCaptureTimeline.clock(event.round_time_seconds))}</span>
                 <p>${escapeHtml(capper||"Unknown player")}</p>
               </div>
             `;
           }).join("")}
         </div>
         <div class="cap-timeline-axis">
-          <span>0:00</span>
-          <span>5:00</span>
-          <span>10:00</span>
-          <span>15:00</span>
+          ${[0,1,2,3].map(i=>`<span>${window.nnCaptureTimeline.clock(maxSeconds*i/3)}</span>`).join("")}
         </div>
       </div>
     </section>

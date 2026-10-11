@@ -65,7 +65,7 @@ This document describes only `match.html` and its match dashboard. It extends th
 
 The page retains the shared navigation, real match metadata, map preview, score, external sources, and round tables. Compact team summaries and expandable player rows lead into class, weapon, damage, and capture comparisons. Existing Hampalyzer and NoName MVP analysis remains available through a disclosure.
 
-Implementation sources are `assets/css/match-dashboard.css`, `assets/js/match-analytics.js`, `assets/js/match.js`, and `match.html`. The dashboard stylesheet loads after the incumbent `match.css`. Shared overrides are scoped to the match document/page; analytics behavior mounts inside `#match-analytics`.
+Implementation sources are `assets/css/match-dashboard.css`, `assets/js/match-analytics.js`, `assets/js/match.js`, and `match.html`. Round-relative capture normalization is shared through `assets/js/capture-timeline.js`, also loaded by `matches.html` for its sidebar renderer in `assets/js/matches.js`. The dashboard stylesheet loads after the incumbent `match.css`. Shared style overrides are scoped to the match document/page; analytics behavior mounts inside `#match-analytics`.
 
 The frontmatter records actual reusable values from those styles. It is descriptive of this surface; the source files remain the implementation authority. No root `DESIGN.md`, `PRODUCT.md`, or global design sidecar is introduced.
 
@@ -121,7 +121,7 @@ Engineer information reuses `renderEngineerBuildings` rather than implementing a
 
 Overview shows five class entries and six weapon entries ranked by pooled totals; notes identify truncated overview lists and point users to complete player detail records. Comparison bars use actual values and scale each pair against its larger finite value. Damage totals and per-kill/per-death ratios are distinct rows.
 
-Round Performance retains cumulative capture steps on the full match clock. Flag Pace compares separate round/team series on a shared round-relative axis: Round 1 is solid, Round 2 dashed, and every series starts at 00:00 with zero captures. The API's concatenated gameplay timestamps are converted only for display by subtracting the sum of preceding recorded round durations. Replay recording epochs include different recording boundaries and are not used. Capture points have accessible names and can be hovered or focused to reveal round, team, capture number, relative time, and player. The capture table identifies each round and shows the same relative time while preserving event order.
+Round Performance and Flag Pace compare separate round/team series on a shared round-relative axis: Round 1 is solid, Round 2 dashed, and every series starts at 00:00 with zero captures. The match-history sidebar uses the same normalized events, labels each capture's round and relative time, and scales its marker axis to recorded round durations rather than a fixed 15 minutes. The API's concatenated gameplay timestamps are converted only for display by subtracting the sum of preceding recorded round durations. Replay recording epochs include different recording boundaries and are not used. Capture points have accessible names and can be hovered or focused to reveal round, team, capture number, relative time, and player. The capture table identifies each round and shows the same relative time while preserving event order.
 
 Missing, invalid, duplicated, or nonconsecutive round durations stop boundary calculation; captures without a verified boundary remain in the table with unavailable round/time and are excluded from the chart. A capture exactly on a shared round boundary is also unavailable: the API supplies no capture round ID to distinguish the previous round's final second from the next round's zero. No captures produces an explicit empty state, accessible through the Flag Pace tab. Missing timeline records cannot be reconstructed from aggregate capture totals; parser/API ingestion is separate from this frontend correction. The overview still falls back to recorded round scores when available.
 
@@ -158,7 +158,7 @@ The page loads `api/match/{id}`. Player matching reuses the incumbent key/Steam 
 | Weapon Usage / player bars | Returned `weapon_stats.kills` | The API query has `LIMIT 50`. Percentages divide a weapon's returned kills by that player's total returned weapon kills, not aggregate player kills. Counts describe recorded kills, not firing frequency. |
 | Damage / kill, Damage / death | Team enemy damage / team kills or deaths | Missing inputs or zero denominators produce `—`; no invented finite ratio. |
 | Duration | Sum `rounds.duration_seconds` | Requires valid duration for every returned round. |
-| Capture chart | Sorted nonnegative `capTimeline.time_seconds`; Flag Pace subtracts preceding `rounds.duration_seconds` | Flag Pace resets counts for each round/team series and uses a shared round-relative axis. Unknown boundaries produce unavailable values, never guessed offsets. Overview Round Performance retains the full match clock. |
+| Capture charts and sidebar | Sorted nonnegative `capTimeline.time_seconds`; shared helper subtracts preceding `rounds.duration_seconds` | Dashboard charts reset counts for each round/team series and use a shared round-relative axis. Sidebar markers and event list use the same normalization. Unknown boundaries produce unavailable values, never guessed offsets. |
 | Score after capture | `capTimeline.score_after` | Null values remain `—`. The chart counts actual captures and does not manufacture score points. |
 
 ## Recorded verification
@@ -171,6 +171,7 @@ Evidence is saved in `C:/Users/riari/.codex/visualizations/2026/10/11/01a128a1-4
 
 - `dashboard-validation.json` — reconciliation and interaction results.
 - `flag-pace-validation.json`, `flag-pace-desktop.png`, `flag-pace-mobile.png` — round-relative capture verification and focused viewport captures.
+- `site-wide-round-clock-validation.json`, `round-clock-overview.png`, `flag-pace-sidebar-desktop.png`, `flag-pace-sidebar-mobile.png` — shared clock verification across dashboard, sidebar, and legacy renderer; sidebar unknown-boundary and no-capture states also checked without fabricated axes.
 - `desktop-final.png`, `tablet-final.png`, `mobile-final.png` — final viewport captures.
 - `replay-1.json`, `replay-2.json` — returned replay metadata.
 - `main-tests.log` — existing suite result: 119 tests, 104 passed, 15 pre-existing failures outside the Match Details changes. The API package defines no lint or build scripts.
