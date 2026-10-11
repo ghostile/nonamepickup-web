@@ -77,6 +77,7 @@
 .analytics-player[open]>summary{background:#0a2037;border-bottom:1px solid #194566}
 .analytics-player-identity{display:flex;align-items:center;gap:6px;min-width:0}
 .analytics-class-icon{width:23px;height:28px;object-fit:contain;flex-shrink:0}
+.analytics-player-identity>.analytics-class-icon{width:32px;height:50px}
 .analytics-player-identity>div{min-width:0;flex:1}
 #match-analytics .analytics-player-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;font-size:11px;color:#e9f4ff}
 #match-analytics .analytics-player-name:hover{color:#65cdff}
