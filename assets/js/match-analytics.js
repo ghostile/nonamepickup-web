@@ -67,8 +67,29 @@ window.matchDashboard = (() => {
     return {match,rounds,roundIds,teams,events,duration,extent:Math.max(duration||0,...events.map(e=>Number(e.time_seconds)),1)};
   }
 
+  function roundView(data,id) {
+    if(id==="all")return data;
+    const selectedRound=Number(id),roundIds=[selectedRound],rounds=data.rounds.filter(r=>Number(r.round_num)===selectedRound);
+    const keys={ck:"conced_kills",sg:"sentry_kills",damage:"enemy_damage",caps:"flag_captures",touches:"flag_touches",damage_taken:"damage_taken_enemy"};
+    const teams=data.teams.map(team=>{
+      const players=team.players.map(p=>{
+        const rows=p.rounds.filter(r=>Number(r.round_num)===selectedRound),row=rows.length===1?rows[0]:{};
+        const metrics=Object.fromEntries([...fields.map(([key])=>key),"damage_taken","initial_touches"].map(key=>[key,num(row[keys[key]||key])]));
+        const deaths=[num(row.deaths_by_enemy),num(row.deaths_by_team)];
+        metrics.deaths=deaths.every(v=>v!==null)?deaths[0]+deaths[1]:null;metrics.kd=divide(metrics.kills,metrics.deaths);
+        const taken=[num(row.damage_taken_enemy),num(row.damage_taken_team)];
+        metrics.damage_taken=taken.every(v=>v!==null)?taken[0]+taken[1]:null;
+        return {...p,metrics,rounds:rows,classes:[],weapons:[],buildings:p.buildings.filter(r=>Number(r.round_num)===selectedRound),stats:{...p.stats,main_class:row.role},roundOnly:true};
+      });
+      const totals=Object.fromEntries([...fields.map(([key])=>key),"damage_taken"].map(key=>[key,sum(players.map(p=>p.metrics),key)]));
+      totals.kd=divide(totals.kills,totals.deaths);
+      return {...team,players,totals,score:rounds.length===1?num(rounds[0][team.index===0?"team1_score":"team2_score"]):null,winner:false,context:`Round ${selectedRound}`};
+    });
+    return {...data,teams,rounds,roundIds,selectedRound};
+  }
+
   function summary(team) {
-    return `<section class="analytics-team-summary ${team.color}" data-analytics-team="${team.color}" aria-label="${team.label} summary"><div class="analytics-team-score"><h2>${team.label}${team.winner?'<span class="analytics-winner">Winner <img src="assets/images/icons/webp/trophy.webp" alt="" width="14" height="14"></span>':""}</h2><strong>${format(team.score)}</strong></div><dl>${fields.filter(([k])=>k!=="team_damage").map(([key,label,description])=>`<div title="${attr(description)}"><dt>${label}</dt><dd>${metric(team.totals,key)}</dd></div>`).join("")}</dl></section>`;
+    return `<section class="analytics-team-summary ${team.color}" data-analytics-team="${team.color}" aria-label="${team.label} summary"><div class="analytics-team-score"><h2>${team.label}${team.context?` · ${team.context}`:""}${team.winner?'<span class="analytics-winner">Winner <img src="assets/images/icons/webp/trophy.webp" alt="" width="14" height="14"></span>':""}</h2><strong>${format(team.score)}</strong></div><dl>${fields.filter(([k])=>k!=="team_damage").map(([key,label,description])=>`<div title="${attr(description)}"><dt>${label}</dt><dd>${metric(team.totals,key)}</dd></div>`).join("")}</dl></section>`;
   }
 
   function weaponBars(rows) {
@@ -87,15 +108,15 @@ window.matchDashboard = (() => {
 
   function playerDetails(p) {
     const extras=["conced_kills","team_kills","sentry_kills","enemy_damage","team_damage","conc_jumps","flag_captures","flag_touches","initial_touches"];
-    return `<div class="analytics-player-detail"><div class="analytics-detail-grid"><section><h3>Class playtime</h3>${p.classes.length?p.classes.map(c=>`<div class="analytics-detail-line"><span>${classIcon(c.class_name)}${esc(classLabel(c.class_name))}</span><b>${clock(num(c.seconds))}</b></div>`).join(""):empty("No class records")}</section><section><h3>Recorded weapon kills</h3>${p.weapons.length?p.weapons.map(w=>`<div class="analytics-detail-line"><span>${weaponIcon(w.weapon)}${esc(weaponLabel(w.weapon))}</span><b>${format(num(w.kills))}</b></div>`).join(""):empty("No weapon records")}</section></div>
+    return `<div class="analytics-player-detail"><div class="analytics-detail-grid"><section><h3>Class playtime</h3>${p.classes.length?p.classes.map(c=>`<div class="analytics-detail-line"><span>${classIcon(c.class_name)}${esc(classLabel(c.class_name))}</span><b>${clock(num(c.seconds))}</b></div>`).join(""):empty(p.roundOnly?"Class playtime is only available for the full match":"No class records")}</section><section><h3>Recorded weapon kills</h3>${p.weapons.length?p.weapons.map(w=>`<div class="analytics-detail-line"><span>${weaponIcon(w.weapon)}${esc(weaponLabel(w.weapon))}</span><b>${format(num(w.kills))}</b></div>`).join(""):empty(p.roundOnly?"Weapon kills are only available for the full match":"No weapon records")}</section></div>
       ${renderEngineerBuildings(p.buildings)}
-      <div class="analytics-table-scroll" tabindex="0" role="region" aria-label="Player round details"><table class="analytics-detail-table"><caption>Round performance · deaths = enemy / team / suicide</caption><thead><tr><th>Round / role</th><th>K</th><th>Deaths E/T/S</th><th>K/D</th><th>CK</th><th>TK</th><th>SG</th><th>Enemy DMG</th><th>Team DMG</th><th>CJ</th><th>Caps</th><th>Touch</th><th>Initial</th><th>Flag time</th><th>Taken E/T/Self</th><th>Objectives</th><th>Toss %</th></tr></thead><tbody>${p.rounds.map(r=>`<tr><th>R${format(r.round_num)} · ${esc(r.role||"—")}</th><td>${format(num(r.kills))}</td><td>${[r.deaths_by_enemy,r.deaths_by_team,r.suicides].map(v=>format(num(v))).join(" / ")}</td><td>${format(roundKd(r),2)}</td>${extras.map(k=>`<td>${format(num(r[k]))}</td>`).join("")}<td>${clock(num(r.flag_time_seconds))}</td><td>${[r.damage_taken_enemy,r.damage_taken_team,r.self_damage].map(v=>format(num(v))).join(" / ")}</td><td>${format(num(r.objectives))}</td><td>${format(num(r.toss_percent),1)}</td></tr>`).join("")||'<tr><td colspan="17">No round records</td></tr>'}</tbody></table></div><p class="analytics-note">Damage taken: ${format(p.metrics.damage_taken)} · Initial touches: ${format(p.metrics.initial_touches)} · Rating change: ${p.player.delta==null?"—":deltaText(p.player.delta)}</p></div>`;
+      <div class="analytics-table-scroll" tabindex="0" role="region" aria-label="Player round details"><table class="analytics-detail-table"><caption>Round performance · deaths = enemy / team / suicide</caption><thead><tr><th>Round / role</th><th>K</th><th>Deaths E/T/S</th><th>K/D</th><th>CK</th><th>TK</th><th>SG</th><th>Enemy DMG</th><th>Team DMG</th><th>CJ</th><th>Caps</th><th>Touch</th><th>Initial</th><th>Flag time</th><th>Taken E/T/Self</th><th>Objectives</th><th>Toss %</th></tr></thead><tbody>${p.rounds.map(r=>`<tr><th>R${format(r.round_num)} · ${esc(r.role||"—")}</th><td>${format(num(r.kills))}</td><td>${[r.deaths_by_enemy,r.deaths_by_team,r.suicides].map(v=>format(num(v))).join(" / ")}</td><td>${format(roundKd(r),2)}</td>${extras.map(k=>`<td>${format(num(r[k]))}</td>`).join("")}<td>${clock(num(r.flag_time_seconds))}</td><td>${[r.damage_taken_enemy,r.damage_taken_team,r.self_damage].map(v=>format(num(v))).join(" / ")}</td><td>${format(num(r.objectives))}</td><td>${format(num(r.toss_percent),1)}</td></tr>`).join("")||'<tr><td colspan="17">No round records</td></tr>'}</tbody></table></div><p class="analytics-note">Damage taken: ${format(p.metrics.damage_taken)} · Initial touches: ${format(p.metrics.initial_touches)} · Full-match rating change: ${p.player.delta==null?"—":deltaText(p.player.delta)}</p></div>`;
   }
 
   function playerTeam(team,roundIds) {
-    return `<section class="analytics-player-team ${team.color}"><header><h2>${team.label} Players</h2><span>${team.players.length} players · full match</span></header><div class="analytics-player-scroll" tabindex="0" role="region" aria-label="${team.label} player comparison"><div class="analytics-player-grid"><div class="analytics-player-columns"><span>Player / class</span><span>Combat & objectives</span><span>Weapon kills</span><span>K/D / round</span></div>${team.players.map(p=>{
+    return `<section class="analytics-player-team ${team.color}"><header><h2>${team.label} Players</h2><span>${team.players.length} players · ${team.context||"full match"}</span></header><div class="analytics-player-scroll" tabindex="0" role="region" aria-label="${team.label} player comparison"><div class="analytics-player-grid"><div class="analytics-player-columns"><span>Player / class</span><span>Combat & objectives</span><span>Weapon kills</span><span>K/D / round</span></div>${team.players.map(p=>{
       const primary=p.classes[0]?.class_name||p.stats.main_class;
-      return `<details class="analytics-player ${p.gameMvp?"analytics-player-mvp":""}"><summary><div class="analytics-player-identity">${classIcon(primary)}<div><div class="analytics-player-name-line"><a class="analytics-player-name" href="player.html?id=${encodeURIComponent(p.player.id||p.stats.player_key||"")}" title="${attr(p.player.name||p.player.display_name||"Unknown")}">${playerLabel(p.player)}${pageSupporterBadge(p.player.id)}</a>${p.gameMvp?'<span class="analytics-mvp-badge" title="Recorded game MVP">★ MVP</span>':""}</div><span class="analytics-player-class" title="${attr(p.classes.map(c=>classLabel(c.class_name)).join(", "))}">${esc(p.classes.length?p.classes.slice(0,2).map(c=>classLabel(c.class_name)).join(" / "):classLabel(primary))}</span></div><span class="analytics-expand" aria-hidden="true">+</span></div><dl class="analytics-player-metrics">${fields.map(([key,label,description])=>`<div class="metric-${key}" title="${attr(description)}"><dt>${label}</dt><dd>${metric(p.metrics,key)}</dd></div>`).join("")}</dl><div class="analytics-player-weapons">${weaponBars(p.weapons)}</div>${roundGraphic(p,roundIds)}</summary>${playerDetails(p)}</details>`;
+      return `<details class="analytics-player ${p.gameMvp?"analytics-player-mvp":""}"><summary><div class="analytics-player-identity">${classIcon(String(primary||"").split(",")[0].trim())}<div><div class="analytics-player-name-line"><a class="analytics-player-name" href="player.html?id=${encodeURIComponent(p.player.id||p.stats.player_key||"")}" title="${attr(p.player.name||p.player.display_name||"Unknown")}">${playerLabel(p.player)}${pageSupporterBadge(p.player.id)}</a>${p.gameMvp?'<span class="analytics-mvp-badge" title="Recorded game MVP">★ MVP</span>':""}</div><span class="analytics-player-class" title="${attr(p.classes.map(c=>classLabel(c.class_name)).join(", "))}">${esc(p.classes.length?p.classes.slice(0,2).map(c=>classLabel(c.class_name)).join(" / "):classLabel(primary))}</span></div><span class="analytics-expand" aria-hidden="true">+</span></div><dl class="analytics-player-metrics">${fields.map(([key,label,description])=>`<div class="metric-${key}" title="${attr(description)}"><dt>${label}</dt><dd>${metric(p.metrics,key)}</dd></div>`).join("")}</dl><div class="analytics-player-weapons">${p.roundOnly?empty("Full match only"):weaponBars(p.weapons)}</div>${roundGraphic(p,roundIds)}</summary>${playerDetails(p)}</details>`;
     }).join("")||empty("No players assigned")}</div></div></section>`;
   }
 
@@ -107,6 +128,7 @@ window.matchDashboard = (() => {
     return `<div class="analytics-pair"><div class="analytics-pair-label">${icon}<span>${esc(label)}</span></div>${values.map((v,i)=>`<div class="analytics-pair-value ${i===0?"blue":"red"}" ${filter!=="both"&&filter!==(i===0?"blue":"red")?"hidden":""}><span class="analytics-bar-track"><span style="width:${v===null?0:v===Infinity?100:Math.min(100,v/max*100)}%"></span></span><b>${display(v)}</b></div>`).join("")}</div>`;
   }
   function breakdown(data,kind,filter,full=false) {
+    if(data.selectedRound)return panel(kind==="class"?"Class Breakdown":"Weapon Usage",empty("Round-specific breakdowns are not recorded. Select All rounds to view full-match totals."),"",full);
     const isClass=kind==="class",collection=isClass?"classes":"weapons",key=isClass?"class_name":"weapon",value=isClass?"seconds":"kills";
     const maps=data.teams.map(t=>group(t,collection,key,value));
     const keys=[...new Set(maps.flatMap(m=>[...m.keys()]))].sort((a,b)=>maps.reduce((n,m)=>n+(m.get(b)||0)-(m.get(a)||0),0));
@@ -120,7 +142,10 @@ window.matchDashboard = (() => {
     return panel("Damage Comparison",specs.map(([label,get])=>pair(label,data.teams.map(t=>get(t.totals)),v=>format(v,label.includes("/")?1:0),"",filter)).join(""),"Enemy damage and friendly damage kept separate");
   }
 
-  const flagPaceRounds = data => window.nnCaptureTimeline.build(data.match,data.events);
+  const flagPaceRounds = data => {
+    const pace=window.nnCaptureTimeline.build(data.match,data.events);
+    return data.selectedRound?{...pace,rounds:pace.rounds.filter(r=>r.id===data.selectedRound),events:pace.events.filter(e=>e.round===data.selectedRound)}:pace;
+  };
   const paceClock = window.nnCaptureTimeline.clock;
 
   function captures(data,filter,rounds=flagPaceRounds(data).rounds) {
@@ -140,7 +165,7 @@ window.matchDashboard = (() => {
     }).join("")).join("")}</svg><p class="analytics-chart-detail" aria-live="polite">Cumulative captures · ${rounds?"round clock":"match clock"}</p>`;
   }
   const roundPanel=(data,filter)=>panel("Round Performance",data.events.length?captures(data,filter):data.rounds.map(r=>pair(`Round ${r.round_num}`,[num(r.team1_score),num(r.team2_score)],format,"",filter)).join("")||empty("No round results"),data.events.length?"Cumulative captures · round-relative timestamps":"Recorded round scores");
-  const comparison=(data,filter)=>panel("Team Comparison",fields.map(([key,,description])=>pair(description,data.teams.map(t=>t.totals[key]),v=>key==="flag_time_seconds"?clock(v):format(v,key==="kd"?2:0),"",filter)).join(""),"Full match totals · CJ = concussion jumps",true);
+  const comparison=(data,filter)=>panel("Team Comparison",fields.map(([key,,description])=>pair(description,data.teams.map(t=>t.totals[key]),v=>key==="flag_time_seconds"?clock(v):format(v,key==="kd"?2:0),"",filter)).join(""),`${data.selectedRound?`Round ${data.selectedRound}`:"Full match"} totals · CJ = concussion jumps`,true);
   function timeline(data,filter) {
     return `<div class="analytics-two-col">${data.teams.filter(t=>filter==="both"||filter===t.color).map(team=>panel(`${team.label} Round Timeline`,data.roundIds.map(id=>{
       const rows=team.players.flatMap(p=>p.rounds.filter(r=>Number(r.round_num)===id)),r=data.rounds.find(r=>Number(r.round_num)===id)||{};
@@ -149,47 +174,52 @@ window.matchDashboard = (() => {
   }
   function pace(data,filter) {
     const {rounds,events}=flagPaceRounds(data),unassigned=events.filter(e=>e.round===null).length;
-    return panel("Flag Pace",`<div class="analytics-pace-layout"><div class="analytics-pace-chart">${captures(data,filter,rounds)}${unassigned?empty(`${unassigned} capture(s) have no verified round boundary; their round and relative time are unavailable.`):""}</div><div class="analytics-table-scroll analytics-pace-events" tabindex="0" role="region" aria-label="Capture events"><table class="analytics-detail-table"><thead><tr><th>Round</th><th>Round time</th><th>Team</th><th>Capture</th><th>Player</th></tr></thead><tbody>${events.filter(e=>filter==="both"||capTeamClass(e.team)===filter).map(e=>`<tr class="${capTeamClass(e.team)}"><td>${e.round===null?"—":`R${e.round}`}</td><td>${paceClock(e.round_time_seconds)}</td><td>${esc(capTeamLabel(e.team))}</td><td>${format(num(e.cap_num))}</td><td>${esc(e.capper_name||"Unknown player")}</td></tr>`).join("")||'<tr><td colspan="5">The match API returned no timestamped captures.</td></tr>'}</tbody></table></div></div>`,"Each round starts at 00:00 with zero captures · recorded captures, not score points",true);
+    return panel("Flag Pace",`<div class="analytics-pace-layout"><div class="analytics-pace-chart">${captures(data,filter,rounds)}${unassigned?empty(`${unassigned} capture(s) have no verified round boundary; their round and relative time are unavailable.`):""}</div><div class="analytics-table-scroll analytics-pace-events" tabindex="0" role="region" aria-label="Capture events"><table class="analytics-detail-table"><thead><tr><th>Round</th><th>Round time</th><th>Team</th><th>Capture</th><th>Player</th></tr></thead><tbody>${events.filter(e=>filter==="both"||capTeamClass(e.team)===filter).map(e=>`<tr class="${capTeamClass(e.team)}"><td>${e.round===null?"—":`R${e.round}`}</td><td>${paceClock(e.round_time_seconds)}</td><td>${esc(capTeamLabel(e.team))}</td><td>${format(num(e.cap_num))}</td><td>${esc(e.capper_name||"Unknown player")}</td></tr>`).join("")||'<tr><td colspan="5">No timestamped captures for this selection.</td></tr>'}</tbody></table></div></div>`,"Each round starts at 00:00 with zero captures · recorded captures, not score points",true);
   }
   function downloads(data) {
-    return panel("Downloads & Match Sources",`<div class="analytics-download-links"><button type="button" data-export="json">Match data · JSON ↓</button><button type="button" data-export="csv">Player statistics · CSV ↓</button>${data.match.hampalyzer_url?`<a href="${attr(data.match.hampalyzer_url)}" target="_blank" rel="noopener noreferrer">Hampalyzer ↗</a>`:""}${data.match.tfcstats_url?`<a href="${attr(data.match.tfcstats_url)}" target="_blank" rel="noopener noreferrer">TFCStats ↗</a>`:""}</div><div data-replay-links></div>`,"Export the actual API response or the current team selection.",true);
+    return panel("Downloads & Match Sources",`<div class="analytics-download-links"><button type="button" data-export="json">Match data · JSON ↓</button><button type="button" data-export="csv">Player statistics · CSV ↓</button>${data.match.hampalyzer_url?`<a href="${attr(data.match.hampalyzer_url)}" target="_blank" rel="noopener noreferrer">Hampalyzer ↗</a>`:""}${data.match.tfcstats_url?`<a href="${attr(data.match.tfcstats_url)}" target="_blank" rel="noopener noreferrer">TFCStats ↗</a>`:""}</div><div data-replay-links></div>`,"JSON contains the full API response; CSV uses the current team and round selection.",true);
   }
 
   function mount(root,match) {
-    const data=model(match);let active="overview",filter="both",replays=[],replaysLoaded=false;
+    const data=model(match);let active="overview",filter="both",roundFilter="all",replays=[],replaysLoaded=false;
     const tabs=[["overview","Player Overview"],["comparison","Team Comparison"],["timeline","Round Timeline"],["pace","Flag Pace"],["weapons","Weapon Usage"],["damage","Damage"],["vision","Map Vision"],["downloads","Downloads"]];
     const enabled=id=>(id!=="vision"||replays.length>0)&&(id!=="timeline"||data.roundIds.length>0)&&(id!=="weapons"||data.teams.some(t=>t.players.some(p=>p.weapons.length)));
-    root.innerHTML=`<div class="analytics-nav"><div class="analytics-navigation-links"><div class="analytics-tabs" role="tablist" aria-label="Match analytics">${tabs.map(([id,label])=>`<button type="button" id="analytics-tab-${id}" data-analytics-tab="${id}" role="tab" aria-controls="analytics-content" aria-selected="${id===active}" tabindex="${id===active?0:-1}" ${enabled(id)?"":`disabled title="${id==="vision"?"Match statistics contain no positions. Checking recorded replays.":"No recorded data for this view."}"`}>${label}</button>`).join("")}</div><a class="analytics-back-link" href="matches.html">Back to Matches</a></div><div class="analytics-filter" role="group" aria-label="Team view"><span>View:</span>${[["both","Both"],["blue","Team 1"],["red","Team 2"]].map(([id,label])=>`<button type="button" data-team-filter="${id}" aria-pressed="${id===filter}">${label}</button>`).join("")}</div></div><div class="analytics-summaries">${data.teams.map(summary).join("")}</div><div id="analytics-content" role="tabpanel" aria-labelledby="analytics-tab-overview" tabindex="0"></div>`;
+    root.innerHTML=`<div class="analytics-nav"><div class="analytics-navigation-links"><div class="analytics-tabs" role="tablist" aria-label="Match analytics">${tabs.map(([id,label])=>`<button type="button" id="analytics-tab-${id}" data-analytics-tab="${id}" role="tab" aria-controls="analytics-content" aria-selected="${id===active}" tabindex="${id===active?0:-1}" ${enabled(id)?"":`disabled title="${id==="vision"?"Match statistics contain no positions. Checking recorded replays.":"No recorded data for this view."}"`}>${label}</button>`).join("")}</div><a class="analytics-back-link" href="matches.html">Back to Matches</a></div><div class="analytics-filter" role="group" aria-label="Team view"><span>View:</span>${[["both","Both"],["blue","Team 1"],["red","Team 2"]].map(([id,label])=>`<button type="button" data-team-filter="${id}" aria-pressed="${id===filter}">${label}</button>`).join("")}</div><div class="analytics-filter" role="group" aria-label="Round view"><span>Round:</span>${[["all","All rounds"],...data.roundIds.map(id=>[String(id),`Round ${id}`])].map(([id,label])=>`<button type="button" data-round-filter="${id}" aria-pressed="${id===roundFilter}">${label}</button>`).join("")}</div></div><div class="analytics-summaries">${data.teams.map(summary).join("")}</div><div id="analytics-content" role="tabpanel" aria-labelledby="analytics-tab-overview" tabindex="0"></div>`;
     const content=root.querySelector("#analytics-content");
     function renderReplays() {
       const holder=content.querySelector("[data-replay-links]");if(!holder)return;
-      holder.innerHTML=replays.length?`<h3>Recorded replays & map exploration</h3><div class="analytics-download-links">${replays.map(r=>`<a href="pickup-replay.html?matchId=${encodeURIComponent(match.id||match.match_id)}&round=${r.round}">Round ${r.round} replay ↗</a>`).join("")}</div>`:empty(replaysLoaded?"No available replay was returned for this match.":"Checking recorded replay availability…");
+      const selected=replays.filter(r=>roundFilter==="all"||r.round===Number(roundFilter));
+      holder.innerHTML=selected.length?`<h3>Recorded replays & map exploration</h3><div class="analytics-download-links">${selected.map(r=>`<a href="pickup-replay.html?matchId=${encodeURIComponent(match.id||match.match_id)}&round=${r.round}">Round ${r.round} replay ↗</a>`).join("")}</div>`:empty(replaysLoaded?"No available replay was returned for this selection.":"Checking recorded replay availability…");
     }
     function render() {
+      const viewData=roundView(data,roundFilter);
+      root.querySelectorAll("[data-round-filter]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.roundFilter===roundFilter)));
+      root.querySelector(".analytics-summaries").innerHTML=viewData.teams.map(summary).join("");
       root.querySelectorAll("[data-analytics-tab]").forEach(b=>{const selected=b.dataset.analyticsTab===active;b.setAttribute("aria-selected",String(selected));b.tabIndex=selected?0:-1;});
       root.querySelectorAll("[data-team-filter]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.teamFilter===filter)));
       root.querySelectorAll(".analytics-team-summary").forEach(p=>p.hidden=filter!=="both"&&p.dataset.analyticsTeam!==filter);
       root.querySelector(".analytics-summaries").classList.toggle("single-team",filter!=="both");
       content.setAttribute("aria-labelledby",`analytics-tab-${active}`);
-      if(active==="overview")content.innerHTML=`<div class="analytics-players ${filter!=="both"?"single-team":""}">${data.teams.filter(t=>filter==="both"||filter===t.color).map(t=>playerTeam(t,data.roundIds)).join("")}</div><div class="analytics-support">${breakdown(data,"class",filter)}${breakdown(data,"weapon",filter)}${damage(data,filter)}${roundPanel(data,filter)}</div>`;
-      if(active==="comparison")content.innerHTML=comparison(data,filter);
-      if(active==="timeline")content.innerHTML=timeline(data,filter);
-      if(active==="pace")content.innerHTML=pace(data,filter);
-      if(active==="weapons")content.innerHTML=breakdown(data,"weapon",filter,true);
-      if(active==="damage")content.innerHTML=damage(data,filter);
-      if(active==="downloads"){content.innerHTML=downloads(data);renderReplays();}
+      if(active==="overview")content.innerHTML=`<div class="analytics-players ${filter!=="both"?"single-team":""}">${viewData.teams.filter(t=>filter==="both"||filter===t.color).map(t=>playerTeam(t,viewData.roundIds)).join("")}</div><div class="analytics-support">${breakdown(viewData,"class",filter)}${breakdown(viewData,"weapon",filter)}${damage(viewData,filter)}${roundPanel(viewData,filter)}</div>`;
+      if(active==="comparison")content.innerHTML=comparison(viewData,filter);
+      if(active==="timeline")content.innerHTML=timeline(viewData,filter);
+      if(active==="pace")content.innerHTML=pace(viewData,filter);
+      if(active==="weapons")content.innerHTML=breakdown(viewData,"weapon",filter,true);
+      if(active==="damage")content.innerHTML=damage(viewData,filter);
+      if(active==="downloads"){content.innerHTML=downloads(viewData);renderReplays();}
       if(active==="vision"){content.innerHTML=panel("Map Vision",'<div data-replay-links></div>',"Explore recorded positions, objectives and player perspectives in the existing 3D replay viewer.",true);renderReplays();}
     }
     root.addEventListener("click",event=>{
-      const tab=event.target.closest("[data-analytics-tab]"),view=event.target.closest("[data-team-filter]"),exportButton=event.target.closest("[data-export]");
+      const tab=event.target.closest("[data-analytics-tab]"),view=event.target.closest("[data-team-filter]"),round=event.target.closest("[data-round-filter]"),exportButton=event.target.closest("[data-export]");
       if(tab&&!tab.disabled){active=tab.dataset.analyticsTab;render();}
       if(view){filter=view.dataset.teamFilter;render();}
+      if(round){roundFilter=round.dataset.roundFilter;render();}
       if(exportButton){
         const kind=exportButton.dataset.export,cell=v=>{const s=String(v??"");return `"${(typeof v==="string"&&/^[=+\-@\t\r]/.test(s)?"'"+s:s).replace(/"/g,'""')}"`;};
-        const rows=data.teams.filter(t=>filter==="both"||filter===t.color).flatMap(t=>t.players.map(p=>[t.label,p.player.name||p.player.display_name,p.stats.player_key,...fields.map(([key])=>p.metrics[key])]));
+        const rows=roundView(data,roundFilter).teams.filter(t=>filter==="both"||filter===t.color).flatMap(t=>t.players.map(p=>[t.label,p.player.name||p.player.display_name,p.stats.player_key,...fields.map(([key])=>p.metrics[key])]));
         const body=kind==="json"?JSON.stringify(match,null,2):[["Team","Player","Player key",...fields.map(([key])=>key)],...rows].map(r=>r.map(cell).join(",")).join("\r\n");
         const url=URL.createObjectURL(new Blob([body],{type:kind==="json"?"application/json":"text/csv;charset=utf-8"}));
-        const link=document.createElement("a");link.href=url;link.download=`${match.id||match.match_id}-match.${kind}`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+        const link=document.createElement("a");link.href=url;link.download=`${match.id||match.match_id}-${kind==="csv"?`${roundFilter==="all"?"all-rounds":`round-${roundFilter}`}-${filter}`:"match"}.${kind}`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
       }
     });
     root.querySelector(".analytics-tabs").addEventListener("keydown",event=>{

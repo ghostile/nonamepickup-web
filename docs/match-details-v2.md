@@ -188,3 +188,7 @@ This documentation pass only reads the saved verification artifacts; it creates,
 | `pickup-replays.test.js` | event timestamp reversals greater than 50 ms are rejected; schema-v3 rejects absolute, URL, drive-letter, null, and unallowlisted model paths; concurrent identical invalid uploads create one terminal quarantine |
 | `replay-map-materials.test.js` | classifies GoldSrc water and effect textures without matching signs |
 | `replay-projectile-colors.test.js` | pickup replay cache key exposes the latest projectile classifier |
+
+### Round selection
+
+The independent All rounds / Round 1 / Round 2 selector combines with Both / Team 1 / Team 2. Round views use matched round_player_stats for player and team metrics, round scores, role, damage, timeline and CSV export. Deaths exclude suicides; damage taken sums enemy and team damage and excludes self damage, matching full-match totals. Flag Pace filters normalized events after boundary detection, retaining the original timestamps. Replay links follow the selected round. Class playtime and weapon kill breakdowns are only available for the full match and are explicitly unavailable in round views. JSON always exports the original full API response.
