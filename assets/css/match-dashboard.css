@@ -173,30 +173,34 @@
 @media(prefers-reduced-motion:reduce){#match-analytics *,#match-analytics *::before{transition:none!important}}
 
 /* Keep dense match data readable at the browser's default zoom. */
-#match-analytics{font-size:13px}
-.analytics-tabs button,.analytics-back-link,.analytics-filter button,.analytics-download-links :is(button,a){font-size:12px}
-.analytics-filter>span{font-size:12px}
-.analytics-team-score h2,.analytics-player-team h2,.analytics-panel h2{font-size:14px}
-.analytics-winner,.analytics-player-team>header>span{font-size:11px}
-.analytics-team-summary dt,.analytics-player-columns{font-size:10px}
-.analytics-team-summary dd,#match-analytics .analytics-player-name{font-size:13px}
-.analytics-mvp-badge{font-size:10px}
-.analytics-player-class{font-size:12px}
-.analytics-player-metrics dt{font-size:9px}
-.analytics-player-metrics dd,.analytics-weapon-mini{font-size:12px}
-.analytics-round-mini>strong{font-size:14px}
-.analytics-round-mini text{font:9px Inter,sans-serif}
-#match-analytics h3{font-size:13px}
-.analytics-detail-line,.analytics-detail-table{font-size:12px}
-.analytics-detail-line small,.analytics-detail-table th,.analytics-note,.analytics-round-totals dt,.analytics-chart-detail{font-size:11px}
-.analytics-detail-table caption,.analytics-empty{font-size:12px}
-.analytics-legend{font-size:10px}
-.analytics-pair{font-size:11px}
-.analytics-pair-value b{font-size:10px}
-.analytics-capture-chart text{font:11px Inter,sans-serif}
-.match-dashboard-page .round-scroll-hint,#match-analytics .match-buildings-table,#match-analytics .match-buildings-table caption,#match-analytics .match-buildings-table thead{font-size:12px}
+#match-analytics{font-size:15px}
+.analytics-tabs button,.analytics-back-link,.analytics-filter button,.analytics-download-links :is(button,a){font-size:14px}
+.analytics-filter>span{font-size:14px}
+.analytics-team-score h2,.analytics-player-team h2,.analytics-panel h2{font-size:16px}
+.analytics-winner,.analytics-player-team>header>span{font-size:13px}
+.analytics-team-summary dt,.analytics-player-columns{font-size:12px}
+.analytics-team-summary dd,#match-analytics .analytics-player-name{font-size:15px}
+.analytics-mvp-badge{font-size:12px}
+.analytics-player-class{font-size:14px}
+.analytics-player-metrics dt{font-size:11px}
+.analytics-player-metrics dd,.analytics-weapon-mini{font-size:14px}
+.analytics-round-mini>strong{font-size:16px}
+.analytics-round-mini text{font:11px Inter,sans-serif}
+#match-analytics h3{font-size:15px}
+.analytics-detail-line,.analytics-detail-table{font-size:14px}
+.analytics-detail-line small,.analytics-detail-table th,.analytics-note,.analytics-round-totals dt,.analytics-chart-detail{font-size:13px}
+.analytics-detail-table caption,.analytics-empty{font-size:14px}
+.analytics-legend{font-size:12px}
+.analytics-pair{font-size:13px}
+.analytics-pair-value b{font-size:12px}
+.analytics-capture-chart text{font:13px Inter,sans-serif}
+.match-dashboard-page .round-scroll-hint,#match-analytics .match-buildings-table,#match-analytics .match-buildings-table caption,#match-analytics .match-buildings-table thead{font-size:14px}
 
 @media(max-width:480px){
-  .analytics-team-summary dd,.analytics-team-score h2{font-size:12px}
-  .analytics-pair{font-size:11px}
+  .analytics-team-summary dd,.analytics-team-score h2{font-size:14px}
+  .analytics-pair{font-size:13px}
+}
+
+@media(max-width:760px){
+  .analytics-team-summary dl{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
