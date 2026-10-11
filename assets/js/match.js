@@ -41,6 +41,7 @@ function renderMatch(m){
   const players=m.player_stats||[];
   const classes=m.class_stats||[];
   const weapons=m.weapon_stats||[];
+  const buildings=Array.isArray(m.building_stats)?m.building_stats:[];
   const rounds=Array.isArray(m.rounds)?m.rounds:[];
   const roundPlayerStats=Array.isArray(m.round_player_stats)?m.round_player_stats:[];
   const roundMvps=Array.isArray(m.round_mvps)?m.round_mvps:[];
@@ -98,8 +99,8 @@ function renderMatch(m){
     <div class="match-card">
       <h2>Player Stats</h2>
       <div class="player-teams-grid">
-        ${renderPlayerTeam("Team 1",blue,players,classes,weapons,"blue")}
-        ${renderPlayerTeam("Team 2",red,players,classes,weapons,"red")}
+        ${renderPlayerTeam("Team 1",blue,players,classes,weapons,"blue",buildings)}
+        ${renderPlayerTeam("Team 2",red,players,classes,weapons,"red",buildings)}
       </div>
     </div>
   `;
@@ -571,24 +572,59 @@ function renderRoundPlayerRow(row,roundNum,roundMvps,blue,red,statsRows,show){
   `;
 }
 
-function renderPlayerTeam(title,teamRows,statsRows,classRows,weaponRows,color){
+function renderPlayerTeam(title,teamRows,statsRows,classRows,weaponRows,color,buildingRows){
   return `
     <div class="player-team-card ${color}">
       <div class="player-team-head">
         <span>${escapeHtml(title)}</span>
         <span>${teamRows.length} Players</span>
       </div>
-      ${teamRows.map(p=>renderMatchPlayer(p,statsRows,classRows,weaponRows)).join("")||'<div class="match-player-card">No players</div>'}
+      ${teamRows.map(p=>renderMatchPlayer(p,statsRows,classRows,weaponRows,buildingRows)).join("")||'<div class="match-player-card">No players</div>'}
     </div>
   `;
 }
 
-function renderMatchPlayer(teamPlayer,statsRows,classRows,weaponRows){
+function renderEngineerBuildings(rows){
+  if(!rows.length)return"";
+  function total(level,metric){
+    const values=rows.map(row=>row.levels?.[level]?.[metric]);
+    return values.every(value=>value!==null&&value!==undefined&&Number.isFinite(Number(value)))
+      ?values.reduce((sum,value)=>sum+Number(value),0):null;
+  }
+  const levels=["1","2","3"];
+  if(["kills","seconds"].some(metric=>Number(total("unknown",metric))>0))levels.push("unknown");
+  const sum=metric=>{
+    const values=["1","2","3","unknown"].map(level=>total(level,metric));
+    return values.every(value=>value!==null)?values.reduce((a,b)=>a+b,0):null;
+  };
+  const kills=value=>value===null?"Unavailable":fmt(value);
+  const uptime=value=>value===null?"Unavailable":matchFormatSeconds(value);
+  const dispenserValues=rows.map(row=>row.dispenser_seconds);
+  const dispenser=dispenserValues.every(value=>value!==null&&value!==undefined)
+    ?dispenserValues.reduce((a,b)=>a+Number(b),0):null;
+  const notes=[...new Set(rows.flatMap(row=>Array.isArray(row.notes)?row.notes:[]))];
+  return `
+    <section class="match-buildings" aria-label="Engineer buildings">
+      <h3>Engineer Buildings</h3>
+      <table class="match-buildings-table">
+        <caption>Building uptime across recorded rounds</caption>
+        <thead><tr><th scope="col">Sentry gun</th><th scope="col">Kills</th><th scope="col">Uptime</th></tr></thead>
+        <tbody>${levels.map(level=>`<tr><th scope="row">${level==="unknown"?"Unknown level":`Level ${level}`}</th><td>${kills(total(level,"kills"))}</td><td>${uptime(total(level,"seconds"))}</td></tr>`).join("")}</tbody>
+        <tfoot><tr><th scope="row">Total SG</th><td>${kills(sum("kills"))}</td><td>${uptime(sum("seconds"))}</td></tr></tfoot>
+      </table>
+      <div class="match-mini-row match-dispenser"><span>Dispenser uptime</span><b>${uptime(dispenser)}</b></div>
+      ${notes.length?`<details class="match-building-notes"><summary>Recording notes</summary><ul>${notes.map(note=>`<li>${escapeHtml(note)}</li>`).join("")}</ul></details>`:""}
+    </section>
+  `;
+}
+
+function renderMatchPlayer(teamPlayer,statsRows,classRows,weaponRows,buildingRows=[]){
   const name=String(teamPlayer.name||teamPlayer.display_name||"");
   const stats=findStatsForPlayer(statsRows,teamPlayer)||{};
   const classes=rowsForPlayer(classRows,teamPlayer,stats).sort((a,b)=>Number(b.seconds||0)-Number(a.seconds||0));
   const weapons=rowsForPlayer(weaponRows,teamPlayer,stats).sort((a,b)=>Number(b.kills||0)-Number(a.kills||0));
   const d=Number(teamPlayer.delta||0);
+  const buildings=buildingRows.filter(row=>roundRowMatchesPlayer(row,teamPlayer,stats));
 
   return `
     <div class="match-player-card">
@@ -622,6 +658,7 @@ function renderMatchPlayer(teamPlayer,statsRows,classRows,weaponRows){
           `).join(""):'<div class="match-mini-row"><span>-</span><b>-</b></div>'}
         </div>
       </div>
+      ${renderEngineerBuildings(buildings)}
     </div>
   `;
 }

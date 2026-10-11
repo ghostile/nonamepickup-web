@@ -3,6 +3,7 @@
 const express = require("express");
 const { buildNnMvp } = require("../lib/nnMvp");
 const { readMatchServers } = require("../lib/matchServers");
+const { readMatchBuildings } = require("../lib/matchBuildings");
 
 function createMatchesRouter({
   db,
@@ -318,6 +319,7 @@ function createMatchesRouter({
         ok:true,
         match:{
           ...match,
+          building_stats:readMatchBuildings(db,matchId,logRouteError),
           player_stats:playerStats.map(p=>({
             display_name:p.display_name,
             steam_id:p.steam_id,
