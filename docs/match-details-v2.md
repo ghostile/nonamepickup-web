@@ -83,7 +83,7 @@ Panel headings use the title role. Player names use (11px, weight 700), class la
 
 ## Layout
 
-The main container is centered at `min(97vw, 1760px)`, with desktop vertical padding of (21px 0 24px). The match hero and score share a two-column header; each round has its own table. Team summaries and player sections use two equal columns with the team-gap token. Selecting one team changes the summary and player grids to one column.
+The main container follows the shared page width and gutter tokens (a 1650px rendered desktop cap at the standard 75% density), with desktop vertical padding of (21px 0 24px). The match hero and score share a two-column header; each round has its own table. Team summaries and player sections use two equal columns with the team-gap token. Selecting one team changes the summary and player grids to one column.
 
 | Viewport | Team and round layout | Support panels and overflow |
 | --- | --- | --- |
