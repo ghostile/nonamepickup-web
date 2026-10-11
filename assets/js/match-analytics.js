@@ -1,0 +1,193 @@
+"use strict";
+
+// Match-only UI. Aggregate fields come from player_stats; CK and SG are
+// summed from round records only when every recorded round is present.
+window.matchDashboard = (() => {
+  const num = v => v == null || v === "" || !Number.isFinite(Number(v)) ? null : Number(v);
+  const sum = (rows,key) => rows.length && rows.every(r=>num(r[key])!==null) ? rows.reduce((n,r)=>n+Number(r[key]),0) : null;
+  const divide = (a,b) => a===null||b===null?null:b>0?a/b:a>0?Infinity:0;
+  const format = (v,digits=0) => v==null?"—":v===Infinity?"∞":Number(v).toLocaleString(undefined,{minimumFractionDigits:digits,maximumFractionDigits:digits});
+  const clock = v => v===null?"—":`${Math.floor(v/60)}:${String(Math.floor(v%60)).padStart(2,"0")}`;
+  const esc = v => window.nnHelpers.escapeHtml(v);
+  const attr = v => window.nnHelpers.escapeAttr(v);
+  const empty = v => `<p class="analytics-empty">${esc(v)}</p>`;
+  const fields = [
+    ["kills","K","Enemy kills"],["deaths","D","Enemy and team deaths; suicides excluded"],["kd","K/D","Enemy kills / enemy and team deaths; suicides excluded"],
+    ["ck","CK","Conced kills"],["team_kills","TK","Team kills"],["sg","SG","Sentry kills"],
+    ["damage","DMG","Enemy damage"],["team_damage","TDMG","Damage inflicted on teammates"],["conc_jumps","CJ","Concussion jumps"],
+    ["caps","CAPS","Flag captures"],["touches","TOUCH","Flag touches"],["flag_time_seconds","TIME","Flag possession time"]
+  ];
+  const classFiles = {scout:"Scout",sniper:"Sniper",soldier:"Soldier",demoman:"Demoman",medic:"Medic",hwguy:"Heavy",heavy:"Heavy",hvyweapon:"Heavy",engineer:"Engineer",pyro:"Pyro",spy:"Spy",civilian:"Civilian"};
+  const classLabel = k => classFiles[String(k).toLowerCase()]||String(k||"Unknown");
+  const classIcon = k => classFiles[String(k).toLowerCase()]?`<img class="analytics-class-icon" src="assets/images/classes/${classFiles[String(k).toLowerCase()]}old_tfc.png" alt="" loading="lazy">`:"";
+  const weaponIcon = k => `<i aria-hidden="true" class="weapon-icon ${attr(/^weapon-\d+$/.test(k)?k:"")}"></i>`;
+  const weaponLabel = k => window.nnHelpers.weaponName(k);
+  const metric = (r,key) => key==="flag_time_seconds"?clock(r[key]):format(r[key],key==="kd"?2:0);
+  const legend = '<div class="analytics-legend"><span class="blue">Team 1</span><span class="red">Team 2</span></div>';
+  const panel = (title,body,note="",wide=false) => `<section class="analytics-panel ${wide?"analytics-wide":""}"><header><h2>${title}</h2>${legend}</header>${note?`<p class="analytics-note">${note}</p>`:""}${body}</section>`;
+
+  function roundKd(row) {
+    const deaths=["deaths_by_enemy","deaths_by_team"].map(k=>num(row[k]));
+    return divide(num(row.kills),deaths.some(v=>v===null)?null:deaths.reduce((a,b)=>a+b,0));
+  }
+
+  function model(match) {
+    const rounds=Array.isArray(match.rounds)?match.rounds:[];
+    const roundRows=Array.isArray(match.round_player_stats)?match.round_player_stats:[];
+    const roundIds=[...new Set([...rounds,...roundRows].map(r=>Number(r.round_num)).filter(n=>n>0))].sort((a,b)=>a-b);
+    const teams=["blue","red"].map((color,index)=>{
+      const roster=(index===0?match.blueTeam:match.redTeam)||[];
+      const players=roster.map(player=>{
+        const stats=findStatsForPlayer(match.player_stats||[],player)||{};
+        const playerRounds=roundRows.filter(r=>roundRowMatchesPlayer(r,player,stats)).sort((a,b)=>a.round_num-b.round_num);
+        const complete=roundIds.length>0&&roundIds.every(id=>playerRounds.filter(r=>Number(r.round_num)===id).length===1);
+        const metrics=Object.fromEntries(fields.map(([key])=>[key,num(stats[key])]));
+        metrics.ck=complete?sum(playerRounds,"conced_kills"):null;
+        metrics.sg=complete?sum(playerRounds,"sentry_kills"):null;
+        metrics.kd=divide(metrics.kills,metrics.deaths);
+        metrics.damage_taken=num(stats.damage_taken);
+        metrics.initial_touches=num(stats.initial_touches);
+        return {player,stats,metrics,rounds:playerRounds,
+          classes:rowsForPlayer(match.class_stats||[],player,stats).slice().sort((a,b)=>Number(b.seconds)-Number(a.seconds)),
+          weapons:rowsForPlayer(match.weapon_stats||[],player,stats).slice().sort((a,b)=>Number(b.kills)-Number(a.kills)),
+          buildings:(match.building_stats||[]).filter(r=>roundRowMatchesPlayer(r,player,stats))};
+      });
+      const totals=Object.fromEntries(fields.map(([key])=>[key,sum(players.map(p=>p.metrics),key)]));
+      totals.kd=divide(totals.kills,totals.deaths);totals.damage_taken=sum(players.map(p=>p.metrics),"damage_taken");
+      return {color,index,label:`Team ${index+1}`,players,totals,score:num(match[index===0?"score_blue":"score_red"]),winner:String(match.winner).toLowerCase()===color};
+    });
+    const events=(match.capTimeline||[]).filter(e=>num(e.time_seconds)!==null&&Number(e.time_seconds)>=0).slice().sort((a,b)=>Number(a.time_seconds)-Number(b.time_seconds));
+    const duration=sum(rounds,"duration_seconds");
+    return {match,rounds,roundIds,teams,events,duration,extent:Math.max(duration||0,...events.map(e=>Number(e.time_seconds)),1)};
+  }
+
+  function summary(team) {
+    return `<section class="analytics-team-summary ${team.color}" data-analytics-team="${team.color}" aria-label="${team.label} summary"><div class="analytics-team-score"><h2>${team.label}${team.winner?'<span class="analytics-winner">Winner <img src="assets/images/icons/webp/trophy.webp" alt="" width="14" height="14"></span>':""}</h2><strong>${format(team.score)}</strong></div><dl>${fields.filter(([k])=>k!=="team_damage").map(([key,label,description])=>`<div title="${attr(description)}"><dt>${label}</dt><dd>${metric(team.totals,key)}</dd></div>`).join("")}</dl></section>`;
+  }
+
+  function weaponBars(rows) {
+    const total=sum(rows,"kills");
+    return rows.length?rows.slice(0,4).map(r=>{
+      const kills=num(r.kills),percent=total>0&&kills!==null?kills/total*100:null;
+      return `<div class="analytics-weapon-mini" title="${attr(`${weaponLabel(r.weapon)}: ${format(kills)} kills${percent!==null?` · ${format(percent,1)}% of returned weapon kills`:""}`)}">${weaponIcon(r.weapon)}<span class="analytics-bar-track"><span style="width:${percent||0}%"></span></span><b>${percent===null?format(kills):`${format(percent)}%`}</b></div>`;
+    }).join(""):empty("No weapon records");
+  }
+
+  function roundGraphic(p,roundIds) {
+    const points=roundIds.map((id,i)=>{const row=p.rounds.find(r=>Number(r.round_num)===id);return {id,x:12+i*76/Math.max(1,roundIds.length-1),value:row?roundKd(row):null};});
+    const max=Math.max(1,...points.map(p=>p.value).filter(Number.isFinite));
+    return `<div class="analytics-round-mini"><strong>${metric(p.metrics,"kd")}</strong><svg viewBox="0 0 100 46" role="img" aria-label="${attr(points.map(p=>`Round ${p.id} K/D ${format(p.value,2)}`).join(", "))}">${points.length>1&&points.every(p=>Number.isFinite(p.value))?`<polyline points="${points.map(p=>`${p.x},${31-p.value/max*24}`).join(" ")}"/>`:""}${points.map(p=>`${Number.isFinite(p.value)?`<circle cx="${p.x}" cy="${31-p.value/max*24}" r="2.6"><title>R${p.id}: ${format(p.value,2)}</title></circle>`:""}<text x="${p.x}" y="44" text-anchor="middle">R${p.id} ${format(p.value,2)}</text>`).join("")}</svg></div>`;
+  }
+
+  function playerDetails(p) {
+    const extras=["conced_kills","team_kills","sentry_kills","enemy_damage","team_damage","conc_jumps","flag_captures","flag_touches","initial_touches"];
+    return `<div class="analytics-player-detail"><div class="analytics-detail-grid"><section><h3>Class playtime</h3>${p.classes.length?p.classes.map(c=>`<div class="analytics-detail-line"><span>${classIcon(c.class_name)}${esc(classLabel(c.class_name))}</span><b>${clock(num(c.seconds))}</b></div>`).join(""):empty("No class records")}</section><section><h3>Recorded weapon kills</h3>${p.weapons.length?p.weapons.map(w=>`<div class="analytics-detail-line"><span>${weaponIcon(w.weapon)}${esc(weaponLabel(w.weapon))}</span><b>${format(num(w.kills))}</b></div>`).join(""):empty("No weapon records")}</section></div>
+      ${renderEngineerBuildings(p.buildings)}
+      <div class="analytics-table-scroll" tabindex="0" role="region" aria-label="Player round details"><table class="analytics-detail-table"><caption>Round performance · deaths = enemy / team / suicide</caption><thead><tr><th>Round / role</th><th>K</th><th>Deaths E/T/S</th><th>K/D</th><th>CK</th><th>TK</th><th>SG</th><th>Enemy DMG</th><th>Team DMG</th><th>CJ</th><th>Caps</th><th>Touch</th><th>Initial</th><th>Flag time</th><th>Taken E/T/Self</th><th>Objectives</th><th>Toss %</th></tr></thead><tbody>${p.rounds.map(r=>`<tr><th>R${format(r.round_num)} · ${esc(r.role||"—")}</th><td>${format(num(r.kills))}</td><td>${[r.deaths_by_enemy,r.deaths_by_team,r.suicides].map(v=>format(num(v))).join(" / ")}</td><td>${format(roundKd(r),2)}</td>${extras.map(k=>`<td>${format(num(r[k]))}</td>`).join("")}<td>${clock(num(r.flag_time_seconds))}</td><td>${[r.damage_taken_enemy,r.damage_taken_team,r.self_damage].map(v=>format(num(v))).join(" / ")}</td><td>${format(num(r.objectives))}</td><td>${format(num(r.toss_percent),1)}</td></tr>`).join("")||'<tr><td colspan="17">No round records</td></tr>'}</tbody></table></div><p class="analytics-note">Damage taken: ${format(p.metrics.damage_taken)} · Initial touches: ${format(p.metrics.initial_touches)} · Rating change: ${p.player.delta==null?"—":deltaText(p.player.delta)}</p></div>`;
+  }
+
+  function playerTeam(team,roundIds) {
+    return `<section class="analytics-player-team ${team.color}"><header><h2>${team.label} Players</h2><span>${team.players.length} players · full match</span></header><div class="analytics-player-scroll" tabindex="0" role="region" aria-label="${team.label} player comparison"><div class="analytics-player-grid"><div class="analytics-player-columns"><span>Player / class</span><span>Combat & objectives</span><span>Weapon kills</span><span>K/D / round</span></div>${team.players.map(p=>{
+      const primary=p.classes[0]?.class_name||p.stats.main_class;
+      return `<details class="analytics-player"><summary><div class="analytics-player-identity">${classIcon(primary)}<div><a class="analytics-player-name" href="player.html?id=${encodeURIComponent(p.player.id||p.stats.player_key||"")}" title="${attr(p.player.name||p.player.display_name||"Unknown")}">${playerLabel(p.player)}${pageSupporterBadge(p.player.id)}</a><span class="analytics-player-class" title="${attr(p.classes.map(c=>classLabel(c.class_name)).join(", "))}">${esc(p.classes.length?p.classes.slice(0,2).map(c=>classLabel(c.class_name)).join(" / "):classLabel(primary))}</span></div><span class="analytics-expand" aria-hidden="true">+</span></div><dl class="analytics-player-metrics">${fields.map(([key,label,description])=>`<div class="metric-${key}" title="${attr(description)}"><dt>${label}</dt><dd>${metric(p.metrics,key)}</dd></div>`).join("")}</dl><div class="analytics-player-weapons">${weaponBars(p.weapons)}</div>${roundGraphic(p,roundIds)}</summary>${playerDetails(p)}</details>`;
+    }).join("")||empty("No players assigned")}</div></div></section>`;
+  }
+
+  function group(team,collection,key,value) {
+    const values=new Map();team.players.forEach(p=>p[collection].forEach(r=>{if(num(r[value])!==null)values.set(r[key],(values.get(r[key])||0)+Number(r[value]));}));return values;
+  }
+  function pair(label,values,display,icon="",filter="both") {
+    const max=Math.max(1,...values.filter(Number.isFinite));
+    return `<div class="analytics-pair"><div class="analytics-pair-label">${icon}<span>${esc(label)}</span></div>${values.map((v,i)=>`<div class="analytics-pair-value ${i===0?"blue":"red"}" ${filter!=="both"&&filter!==(i===0?"blue":"red")?"hidden":""}><span class="analytics-bar-track"><span style="width:${v===null?0:v===Infinity?100:Math.min(100,v/max*100)}%"></span></span><b>${display(v)}</b></div>`).join("")}</div>`;
+  }
+  function breakdown(data,kind,filter,full=false) {
+    const isClass=kind==="class",collection=isClass?"classes":"weapons",key=isClass?"class_name":"weapon",value=isClass?"seconds":"kills";
+    const maps=data.teams.map(t=>group(t,collection,key,value));
+    const keys=[...new Set(maps.flatMap(m=>[...m.keys()]))].sort((a,b)=>maps.reduce((n,m)=>n+(m.get(b)||0)-(m.get(a)||0),0));
+    const selected=full?keys:keys.slice(0,isClass?5:6);
+    const body=selected.map(k=>pair(isClass?classLabel(k):weaponLabel(k),maps.map((m,i)=>m.has(k)?m.get(k):data.teams[i].players.some(p=>p[collection].length)?0:null),isClass?clock:format,isClass?classIcon(k):weaponIcon(k),filter)).join("")||empty(`No ${isClass?"class":"weapon"} records`);
+    return panel(isClass?"Class Breakdown":"Weapon Usage",body+(!full&&keys.length>selected.length?`<p class="analytics-note">Top ${selected.length} of ${keys.length} · all records in player details</p>`:""),isClass?"Pooled player class playtime":"Recorded weapon kills · not shots fired",full);
+  }
+  function damage(data,filter) {
+    const per=(a,b)=>a!==null&&b!==null&&b>0?a/b:null;
+    const specs=[["Enemy damage",t=>t.damage],["Team damage",t=>t.team_damage],["Damage taken",t=>t.damage_taken],["Damage / kill",t=>per(t.damage,t.kills)],["Damage / death",t=>per(t.damage,t.deaths)]];
+    return panel("Damage Comparison",specs.map(([label,get])=>pair(label,data.teams.map(t=>get(t.totals)),v=>format(v,label.includes("/")?1:0),"",filter)).join(""),"Enemy damage and friendly damage kept separate");
+  }
+
+  function captures(data,filter) {
+    if(!data.events.length)return empty("No timestamped captures recorded");
+    const max=Math.max(1,...data.teams.map(t=>data.events.filter(e=>capTeamClass(e.team)===t.color).length));
+    const x=s=>32+s/data.extent*476,y=n=>154-n/max*140;
+    return `<svg class="analytics-capture-chart" viewBox="0 0 520 180" role="img" aria-label="Cumulative captures on the full match clock; hover or focus capture points for details">${[0,1,2,3,4].map(i=>`<line class="chart-grid" x1="32" x2="508" y1="${y(max*i/4)}" y2="${y(max*i/4)}"/><text x="25" y="${y(max*i/4)+4}" text-anchor="end">${format(max*i/4,Number.isInteger(max*i/4)?0:1)}</text><text x="${x(data.extent*i/4)}" y="174" text-anchor="${i===0?"start":i===4?"end":"middle"}">${clock(data.extent*i/4)}</text>`).join("")}${data.teams.filter(t=>filter==="both"||filter===t.color).map(t=>{
+      let count=0,path=`M${x(0)},${y(0)}`;
+      const dots=data.events.filter(e=>capTeamClass(e.team)===t.color).map(e=>{count++;path+=` H${x(Number(e.time_seconds))} V${y(count)}`;const title=`${t.label} · Capture ${e.cap_num||count} · ${clock(Number(e.time_seconds))}${e.capper_name?` · ${e.capper_name}`:""}`;return `<circle class="${t.color}" cx="${x(Number(e.time_seconds))}" cy="${y(count)}" r="3" tabindex="0" data-capture="${attr(title)}" aria-label="${attr(title)}"><title>${esc(title)}</title></circle>`;}).join("");
+      return `<path class="${t.color}" d="${path} H${x(data.extent)}"/>${dots}`;
+    }).join("")}</svg><p class="analytics-chart-detail" aria-live="polite">Cumulative captures · match clock</p>`;
+  }
+  const roundPanel=(data,filter)=>panel("Round Performance",data.events.length?captures(data,filter):data.rounds.map(r=>pair(`Round ${r.round_num}`,[num(r.team1_score),num(r.team2_score)],format,"",filter)).join("")||empty("No round results"),data.events.length?"Cumulative captures · exact event timestamps":"Recorded round scores");
+  const comparison=(data,filter)=>panel("Team Comparison",fields.map(([key,,description])=>pair(description,data.teams.map(t=>t.totals[key]),v=>key==="flag_time_seconds"?clock(v):format(v,key==="kd"?2:0),"",filter)).join(""),"Full match totals · CJ = concussion jumps",true);
+  function timeline(data,filter) {
+    return `<div class="analytics-two-col">${data.teams.filter(t=>filter==="both"||filter===t.color).map(team=>panel(`${team.label} Round Timeline`,data.roundIds.map(id=>{
+      const rows=team.players.flatMap(p=>p.rounds.filter(r=>Number(r.round_num)===id)),r=data.rounds.find(r=>Number(r.round_num)===id)||{};
+      return `<div class="analytics-round-block"><h3>Round ${id}<span>${clock(num(r.duration_seconds))}</span></h3><p class="analytics-note">${esc([r.offense_team?`Offense: ${r.offense_team}`:"",r.defense_team?`Defense: ${r.defense_team}`:""].filter(Boolean).join(" · "))}</p><dl class="analytics-round-totals">${[["Kills","kills"],["Enemy DMG","enemy_damage"],["Team DMG","team_damage"],["Caps","flag_captures"],["Touches","flag_touches"]].map(([label,key])=>`<div><dt>${label}</dt><dd>${format(sum(rows,key))}</dd></div>`).join("")}</dl>${rows.map(row=>`<div class="analytics-detail-line"><span>${esc(row.display_name)} <small>${esc(row.role||"")}</small></span><b>${format(num(row.kills))} K · ${format(roundKd(row),2)} K/D</b></div>`).join("")}</div>`;
+    }).join("")||empty("No round records"))).join("")}</div>`;
+  }
+  function pace(data,filter) {
+    return panel("Flag Pace",captures(data,filter)+`<div class="analytics-table-scroll" tabindex="0" role="region" aria-label="Capture events"><table class="analytics-detail-table"><thead><tr><th>Time</th><th>Team</th><th>Capture</th><th>Player</th><th>Score after</th><th>Touches</th></tr></thead><tbody>${data.events.filter(e=>filter==="both"||capTeamClass(e.team)===filter).map(e=>`<tr class="${capTeamClass(e.team)}"><td>${clock(Number(e.time_seconds))}</td><td>${esc(capTeamLabel(e.team))}</td><td>${format(num(e.cap_num))}</td><td>${esc(e.capper_name||"Unknown player")}</td><td>${esc(e.score_after??"—")}</td><td>${format(num(e.touches))}</td></tr>`).join("")}</tbody></table></div>`,"Full match clock · score per capture is not supplied; this chart counts recorded captures",true);
+  }
+  function downloads(data) {
+    return panel("Downloads & Match Sources",`<div class="analytics-download-links"><button type="button" data-export="json">Match data · JSON ↓</button><button type="button" data-export="csv">Player statistics · CSV ↓</button>${data.match.hampalyzer_url?`<a href="${attr(data.match.hampalyzer_url)}" target="_blank" rel="noopener noreferrer">Hampalyzer ↗</a>`:""}${data.match.tfcstats_url?`<a href="${attr(data.match.tfcstats_url)}" target="_blank" rel="noopener noreferrer">TFCStats ↗</a>`:""}</div><div data-replay-links></div>`,"Export the actual API response or the current team selection.",true);
+  }
+
+  function mount(root,match) {
+    const data=model(match);let active="overview",filter="both",replays=[],replaysLoaded=false;
+    const tabs=[["overview","Player Overview"],["comparison","Team Comparison"],["timeline","Round Timeline"],["pace","Flag Pace"],["weapons","Weapon Usage"],["damage","Damage"],["vision","Map Vision"],["downloads","Downloads"]];
+    const enabled=id=>(id!=="vision"||replays.length>0)&&(id!=="pace"||data.events.length>0)&&(id!=="timeline"||data.roundIds.length>0)&&(id!=="weapons"||data.teams.some(t=>t.players.some(p=>p.weapons.length)));
+    root.innerHTML=`<div class="analytics-nav"><div class="analytics-tabs" role="tablist" aria-label="Match analytics">${tabs.map(([id,label])=>`<button type="button" id="analytics-tab-${id}" data-analytics-tab="${id}" role="tab" aria-controls="analytics-content" aria-selected="${id===active}" tabindex="${id===active?0:-1}" ${enabled(id)?"":`disabled title="${id==="vision"?"Match statistics contain no positions. Checking recorded replays.":"No recorded data for this view."}"`}>${label}</button>`).join("")}</div><div class="analytics-filter" role="group" aria-label="Team view"><span>View:</span>${[["both","Both"],["blue","Team 1"],["red","Team 2"]].map(([id,label])=>`<button type="button" data-team-filter="${id}" aria-pressed="${id===filter}">${label}</button>`).join("")}</div></div><div class="analytics-summaries">${data.teams.map(summary).join("")}</div><div id="analytics-content" role="tabpanel" aria-labelledby="analytics-tab-overview" tabindex="0"></div>`;
+    const content=root.querySelector("#analytics-content");
+    function renderReplays() {
+      const holder=content.querySelector("[data-replay-links]");if(!holder)return;
+      holder.innerHTML=replays.length?`<h3>Recorded replays & map exploration</h3><div class="analytics-download-links">${replays.map(r=>`<a href="pickup-replay.html?matchId=${encodeURIComponent(match.id||match.match_id)}&round=${r.round}">Round ${r.round} replay ↗</a>`).join("")}</div>`:empty(replaysLoaded?"No available replay was returned for this match.":"Checking recorded replay availability…");
+    }
+    function render() {
+      root.querySelectorAll("[data-analytics-tab]").forEach(b=>{const selected=b.dataset.analyticsTab===active;b.setAttribute("aria-selected",String(selected));b.tabIndex=selected?0:-1;});
+      root.querySelectorAll("[data-team-filter]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.teamFilter===filter)));
+      root.querySelectorAll(".analytics-team-summary").forEach(p=>p.hidden=filter!=="both"&&p.dataset.analyticsTeam!==filter);
+      root.querySelector(".analytics-summaries").classList.toggle("single-team",filter!=="both");
+      content.setAttribute("aria-labelledby",`analytics-tab-${active}`);
+      if(active==="overview")content.innerHTML=`<div class="analytics-players ${filter!=="both"?"single-team":""}">${data.teams.filter(t=>filter==="both"||filter===t.color).map(t=>playerTeam(t,data.roundIds)).join("")}</div><div class="analytics-support">${breakdown(data,"class",filter)}${breakdown(data,"weapon",filter)}${damage(data,filter)}${roundPanel(data,filter)}</div><details class="analytics-mvp-details"><summary>MVP analysis · Hampalyzer & NoName</summary>${renderMatchMvpsCard(match.match_mvps||[],match.nn_mvp)}</details><p class="analytics-note analytics-data-note">Full match totals. D and K/D exclude suicides, matching the API. DMG = enemy damage · TDMG = friendly damage · CJ = concussion jumps · weapon shares use returned weapon kills. — = unavailable.</p>`;
+      if(active==="comparison")content.innerHTML=comparison(data,filter);
+      if(active==="timeline")content.innerHTML=timeline(data,filter);
+      if(active==="pace")content.innerHTML=pace(data,filter);
+      if(active==="weapons")content.innerHTML=breakdown(data,"weapon",filter,true);
+      if(active==="damage")content.innerHTML=damage(data,filter);
+      if(active==="downloads"){content.innerHTML=downloads(data);renderReplays();}
+      if(active==="vision"){content.innerHTML=panel("Map Vision",'<div data-replay-links></div>',"Explore recorded positions, objectives and player perspectives in the existing 3D replay viewer.",true);renderReplays();}
+    }
+    root.addEventListener("click",event=>{
+      const tab=event.target.closest("[data-analytics-tab]"),view=event.target.closest("[data-team-filter]"),exportButton=event.target.closest("[data-export]");
+      if(tab&&!tab.disabled){active=tab.dataset.analyticsTab;render();}
+      if(view){filter=view.dataset.teamFilter;render();}
+      if(exportButton){
+        const kind=exportButton.dataset.export,cell=v=>{const s=String(v??"");return `"${(typeof v==="string"&&/^[=+\-@\t\r]/.test(s)?"'"+s:s).replace(/"/g,'""')}"`;};
+        const rows=data.teams.filter(t=>filter==="both"||filter===t.color).flatMap(t=>t.players.map(p=>[t.label,p.player.name||p.player.display_name,p.stats.player_key,...fields.map(([key])=>p.metrics[key])]));
+        const body=kind==="json"?JSON.stringify(match,null,2):[["Team","Player","Player key",...fields.map(([key])=>key)],...rows].map(r=>r.map(cell).join(",")).join("\r\n");
+        const url=URL.createObjectURL(new Blob([body],{type:kind==="json"?"application/json":"text/csv;charset=utf-8"}));
+        const link=document.createElement("a");link.href=url;link.download=`${match.id||match.match_id}-match.${kind}`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+      }
+    });
+    root.querySelector(".analytics-tabs").addEventListener("keydown",event=>{
+      if(!["ArrowLeft","ArrowRight","Home","End"].includes(event.key))return;
+      const buttons=[...root.querySelectorAll("[data-analytics-tab]:not(:disabled)")],index=buttons.indexOf(document.activeElement);
+      const next=event.key==="Home"?0:event.key==="End"?buttons.length-1:(index+(event.key==="ArrowRight"?1:-1)+buttons.length)%buttons.length;
+      event.preventDefault();buttons[next].focus();active=buttons[next].dataset.analyticsTab;render();
+    });
+    const describe=event=>{const point=event.target.closest("[data-capture]");if(point){const detail=point.closest(".analytics-panel").querySelector(".analytics-chart-detail");if(detail)detail.textContent=point.dataset.capture;}};
+    root.addEventListener("mouseover",describe);root.addEventListener("focusin",describe);
+    render();
+    Promise.all(data.roundIds.map(async round=>{
+      try{const response=await fetch(`api/pickup-replays/viewer/${encodeURIComponent(match.id||match.match_id)}/${round}`);if(!response.ok)return null;const metadata=await response.json();return metadata.files?{round,metadata}:null;}catch{return null;}
+    })).then(results=>{replays=results.filter(Boolean);replaysLoaded=true;const tab=root.querySelector('[data-analytics-tab="vision"]');tab.disabled=!replays.length;tab.title=replays.length?"Explore recorded replays":"No recorded replay positions available for this match.";renderReplays();});
+  }
+  return {mount};
+})();

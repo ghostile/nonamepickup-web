@@ -1,7 +1,7 @@
 "use strict";
 
 const nn = window.nnHelpers || {};
-const matchFormatSeconds = nn.formatSeconds || (s => `${Number(s || 0)}s`);
+const matchFormatSeconds = s => s == null ? "—" : (nn.formatSeconds ? nn.formatSeconds(s) : `${Number(s)}s`);
 const matchNormName = nn.normName || (v => String(v || "").toLowerCase().replace(/[^a-z0-9]/g, ""));
 const matchWeaponName = nn.weaponName || (v => v);
 const pageSupporterBadge = nn.supporterBadge || (() => "");
@@ -9,8 +9,8 @@ const pageSupporterBadge = nn.supporterBadge || (() => "");
 function qs(id){return document.getElementById(id);}
 const matchEscapeHtml=window.nnHelpers?.escapeHtml||window.escapeHtml;
 const matchEscapeAttr=window.nnHelpers?.escapeAttr||window.escapeAttr;
-function fmt(n){const v=Number(n||0);return Number.isFinite(v)?v.toLocaleString():"-";}
-function formatDate(ts){const d=new Date(Number(ts||0)*1000);if(!Number.isFinite(d.getTime()))return"-";return d.toLocaleString([], {month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"});}
+function fmt(n){if(n==null||n==="")return"—";const v=Number(n);return Number.isFinite(v)?v.toLocaleString():"—";}
+function formatDate(ts){if(ts==null||Number(ts)<=0)return"—";const d=new Date(Number(ts)*1000);if(!Number.isFinite(d.getTime()))return"—";return d.toLocaleString([], {month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"});}
 
 function className(s){s=String(s||"unknown");return s.charAt(0).toUpperCase()+s.slice(1);}
 function deltaText(d){d=Number(d||0);return d>0?"+"+d:d<0?String(d):"-";}
@@ -39,14 +39,10 @@ function renderMatch(m){
   const blue=m.blueTeam||[];
   const red=m.redTeam||[];
   const players=m.player_stats||[];
-  const classes=m.class_stats||[];
-  const weapons=m.weapon_stats||[];
-  const buildings=Array.isArray(m.building_stats)?m.building_stats:[];
   const rounds=Array.isArray(m.rounds)?m.rounds:[];
   const roundPlayerStats=Array.isArray(m.round_player_stats)?m.round_player_stats:[];
   const roundMvps=Array.isArray(m.round_mvps)?m.round_mvps:[];
   const matchMvps=Array.isArray(m.match_mvps)?m.match_mvps:[];
-  const capTimeline=Array.isArray(m.capTimeline)?m.capTimeline:[];
   const roundSections=rounds.length||roundPlayerStats.length
     ?renderRoundSections(rounds,roundPlayerStats,roundMvps,blue,red,players)
     :"";
@@ -63,8 +59,10 @@ function renderMatch(m){
           <h1 class="match-title">${escapeHtml(m.id||m.match_id||"-")}</h1>
           <div class="match-meta">
             <span>${escapeHtml(formatDate(m.created_at))}</span>
+            <span>${escapeHtml(mapName)}</span>
             <span>${escapeHtml(String(m.status||"-").toUpperCase())}</span>
-            <span>Winner: ${escapeHtml(String(m.winner||"-"))}</span>
+            <span>Winner: ${isBlueWinner(m)?"Team 1":isRedWinner(m)?"Team 2":"—"}</span>
+            ${rounds.length?`<span>Duration: ${matchFormatSeconds(rounds.every(r=>r.duration_seconds!=null&&Number.isFinite(Number(r.duration_seconds)))?rounds.reduce((sum,r)=>sum+Number(r.duration_seconds),0):null)}</span>`:""}
           </div>
         </div>
 
@@ -76,9 +74,9 @@ function renderMatch(m){
           <div class="score-content">
             <div class="score-map">${escapeHtml(mapName)}</div>
             <div class="score-row">
-              <div class="score-team score-blue ${isBlueWinner(m)?"winner":""}"><span>Team 1</span><strong>${Number(m.score_blue??0)}</strong></div>
+              <div class="score-team score-blue ${isBlueWinner(m)?"winner":""}"><span>Team 1</span><strong>${fmt(m.score_blue)}</strong></div>
               <div class="score-vs">VS</div>
-              <div class="score-team score-red ${isRedWinner(m)?"winner":""}"><span>Team 2</span><strong>${Number(m.score_red??0)}</strong></div>
+              <div class="score-team score-red ${isRedWinner(m)?"winner":""}"><span>Team 2</span><strong>${fmt(m.score_red)}</strong></div>
             </div>
             ${renderMatchMvp(matchMvps)}
           </div>
@@ -94,15 +92,7 @@ function renderMatch(m){
 
     <div class="rounds-layout">${roundSections}</div>
 
-    ${renderCapTimelineCard(capTimeline)}
-
-    <div class="match-card">
-      <h2>Player Stats</h2>
-      <div class="player-teams-grid">
-        ${renderPlayerTeam("Team 1",blue,players,classes,weapons,"blue",buildings)}
-        ${renderPlayerTeam("Team 2",red,players,classes,weapons,"red",buildings)}
-      </div>
-    </div>
+    <div id="match-analytics"></div>
   `;
 
 	if (typeof window.setMapImageFromName === "function") {
@@ -111,6 +101,7 @@ function renderMatch(m){
 		fallbackSrc: "assets/images/maps/NoMap.webp"
 	  });
 	}
+	  window.matchDashboard.mount(qs("match-analytics"),m);
 	}
 
 function playerKeys(teamPlayer,stats){
@@ -130,9 +121,8 @@ function findStatsForPlayer(statsRows,teamPlayer){
 
   return statsRows.find(s=>
     keys.includes(String(s.player_key||"")) ||
-    keys.includes(String(s.steam_id||"")) ||
-    String(s.display_name||"")===name
-  ) || null;
+    keys.includes(String(s.steam_id||""))
+  ) || statsRows.find(s=>name&&matchNormName(s.display_name)===matchNormName(name)) || null;
 }
 
 function rowsForPlayer(rows,teamPlayer,stats){
@@ -140,14 +130,13 @@ function rowsForPlayer(rows,teamPlayer,stats){
   const name=String(teamPlayer.name||teamPlayer.display_name||"");
   const statName=String(stats.display_name||"");
 
-  return rows.filter(r=>
+  const identified=rows.filter(r=>
     keys.includes(String(r.player_key||"")) ||
-    keys.includes(String(r.steam_id||"")) ||
-    String(r.display_name||"")===name ||
-    String(r.display_name||"")===statName ||
-    matchNormName(r.display_name)===matchNormName(name) ||
-    matchNormName(r.display_name)===matchNormName(statName)
+    keys.includes(String(r.steam_id||""))
   );
+  return identified.length?identified:rows.filter(r=>
+    (name&&matchNormName(r.display_name)===matchNormName(name)) ||
+    (statName&&matchNormName(r.display_name)===matchNormName(statName)));
 }
 
 function normalizeRoundTeam(value){
