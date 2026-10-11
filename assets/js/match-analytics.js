@@ -47,7 +47,13 @@ window.matchDashboard = (() => {
         metrics.kd=divide(metrics.kills,metrics.deaths);
         metrics.damage_taken=num(stats.damage_taken);
         metrics.initial_touches=num(stats.initial_touches);
-        return {player,stats,metrics,rounds:playerRounds,
+        const gameMvp=(match.match_mvps||[]).some(mvp=>{
+          const ids=[mvp.mvp_player_key,mvp.steam_id,mvp.mvp_steam_id].filter(Boolean).map(String);
+          if(ids.length)return playerKeys(player,stats).some(id=>ids.includes(id));
+          const name=matchNormName(mvp.mvp_display_name||"");
+          return name&&name===matchNormName(stats.display_name||player.name||player.display_name||"");
+        });
+        return {player,stats,metrics,gameMvp,rounds:playerRounds,
           classes:rowsForPlayer(match.class_stats||[],player,stats).slice().sort((a,b)=>Number(b.seconds)-Number(a.seconds)),
           weapons:rowsForPlayer(match.weapon_stats||[],player,stats).slice().sort((a,b)=>Number(b.kills)-Number(a.kills)),
           buildings:(match.building_stats||[]).filter(r=>roundRowMatchesPlayer(r,player,stats))};
@@ -89,7 +95,7 @@ window.matchDashboard = (() => {
   function playerTeam(team,roundIds) {
     return `<section class="analytics-player-team ${team.color}"><header><h2>${team.label} Players</h2><span>${team.players.length} players · full match</span></header><div class="analytics-player-scroll" tabindex="0" role="region" aria-label="${team.label} player comparison"><div class="analytics-player-grid"><div class="analytics-player-columns"><span>Player / class</span><span>Combat & objectives</span><span>Weapon kills</span><span>K/D / round</span></div>${team.players.map(p=>{
       const primary=p.classes[0]?.class_name||p.stats.main_class;
-      return `<details class="analytics-player"><summary><div class="analytics-player-identity">${classIcon(primary)}<div><a class="analytics-player-name" href="player.html?id=${encodeURIComponent(p.player.id||p.stats.player_key||"")}" title="${attr(p.player.name||p.player.display_name||"Unknown")}">${playerLabel(p.player)}${pageSupporterBadge(p.player.id)}</a><span class="analytics-player-class" title="${attr(p.classes.map(c=>classLabel(c.class_name)).join(", "))}">${esc(p.classes.length?p.classes.slice(0,2).map(c=>classLabel(c.class_name)).join(" / "):classLabel(primary))}</span></div><span class="analytics-expand" aria-hidden="true">+</span></div><dl class="analytics-player-metrics">${fields.map(([key,label,description])=>`<div class="metric-${key}" title="${attr(description)}"><dt>${label}</dt><dd>${metric(p.metrics,key)}</dd></div>`).join("")}</dl><div class="analytics-player-weapons">${weaponBars(p.weapons)}</div>${roundGraphic(p,roundIds)}</summary>${playerDetails(p)}</details>`;
+      return `<details class="analytics-player ${p.gameMvp?"analytics-player-mvp":""}"><summary><div class="analytics-player-identity">${classIcon(primary)}<div><div class="analytics-player-name-line"><a class="analytics-player-name" href="player.html?id=${encodeURIComponent(p.player.id||p.stats.player_key||"")}" title="${attr(p.player.name||p.player.display_name||"Unknown")}">${playerLabel(p.player)}${pageSupporterBadge(p.player.id)}</a>${p.gameMvp?'<span class="analytics-mvp-badge" title="Recorded game MVP">★ MVP</span>':""}</div><span class="analytics-player-class" title="${attr(p.classes.map(c=>classLabel(c.class_name)).join(", "))}">${esc(p.classes.length?p.classes.slice(0,2).map(c=>classLabel(c.class_name)).join(" / "):classLabel(primary))}</span></div><span class="analytics-expand" aria-hidden="true">+</span></div><dl class="analytics-player-metrics">${fields.map(([key,label,description])=>`<div class="metric-${key}" title="${attr(description)}"><dt>${label}</dt><dd>${metric(p.metrics,key)}</dd></div>`).join("")}</dl><div class="analytics-player-weapons">${weaponBars(p.weapons)}</div>${roundGraphic(p,roundIds)}</summary>${playerDetails(p)}</details>`;
     }).join("")||empty("No players assigned")}</div></div></section>`;
   }
 
