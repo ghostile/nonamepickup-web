@@ -137,6 +137,10 @@
 .analytics-capture-chart circle{cursor:help}.analytics-capture-chart circle:focus{outline:none;stroke:#fff;stroke-width:2}
 .analytics-chart-detail{font-size:9px;line-height:1.4;min-height:25px;margin:4px 0 0;color:#b8d6ee}
 .analytics-wide{max-width:100%}.analytics-wide .analytics-capture-chart{max-height:340px}
+.analytics-pace-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;align-items:start}
+.analytics-pace-chart,.analytics-pace-events{min-width:0}
+.analytics-pace-events .analytics-detail-table td:last-child,.analytics-pace-events .analytics-detail-table th:last-child{text-align:left}
+@media(max-width:1000px){.analytics-pace-layout{grid-template-columns:1fr;gap:10px}}
 .analytics-wide .analytics-pair{min-height:34px;font-size:11px;grid-template-columns:minmax(170px,1fr) 2fr 2fr}
 .analytics-wide .analytics-pair-value b{min-width:58px;font-size:11px}
 #analytics-content>.analytics-panel:not(.analytics-wide){max-width:100%;padding:16px}
