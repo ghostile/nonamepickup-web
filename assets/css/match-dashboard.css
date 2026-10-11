@@ -7,7 +7,7 @@
 .match-dashboard-page .match-top{margin-bottom:0}
 /* Temporarily hidden; remove this rule to restore the original round section. */
 .match-dashboard-page :is(.match-links,.rounds-layout){display:none!important}
-@media(min-width:901px){.match-dashboard-page main.match-main{width:min(calc(100vw - (var(--page-gutter-desktop) * 2 * var(--standard-desktop-ui-scale))),calc(var(--page-main-width) * var(--standard-desktop-ui-scale)))!important}.match-dashboard-page .match-top-grid{zoom:var(--standard-desktop-ui-scale)}}
+@media(min-width:901px){.match-dashboard-page main.match-main{width:calc(100vw - (var(--page-gutter-desktop) * 2))!important;max-width:none!important}.match-dashboard-page .match-top-grid{zoom:var(--standard-desktop-ui-scale)}}
 @media(min-width:901px){
   .match-dashboard-page .match-top-grid .score-map{font-size:18px;margin-bottom:6px}
   .match-dashboard-page .match-top-grid .score-team{min-height:64px;padding:6px 16px}
@@ -171,3 +171,32 @@
 @media(max-width:760px){.match-dashboard-page .match-main{width:100%;padding:8px!important}.match-dashboard-page .match-top-grid{grid-template-columns:1fr;gap:8px}.match-dashboard-page .match-hero{min-height:0}.match-dashboard-page .score-content{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px}.match-dashboard-page .score-map{display:none}.match-dashboard-page .score-row{margin:0;width:100%;grid-template-columns:minmax(0,1fr) 32px minmax(0,1fr);gap:8px}.match-dashboard-page .match-top-grid .score-team{min-width:0;padding:10px 12px}.match-dashboard-page .match-top-grid .score-team strong{font-size:clamp(24px,7vw,36px)}.match-dashboard-page .match-mvp-pill{margin:0}.match-dashboard-page .rounds-layout,.analytics-summaries,.analytics-players,.analytics-two-col{grid-template-columns:1fr}.analytics-support{grid-template-columns:repeat(2,minmax(0,1fr))}.analytics-team-summary dl{grid-template-columns:repeat(6,minmax(0,1fr))}.analytics-team-score{min-width:96px}.analytics-player-grid{min-width:605px}.analytics-tabs button{padding:9px 12px}.analytics-filter button{padding:8px 12px}.analytics-panel{padding:9px}.analytics-panel>header{flex-wrap:wrap}.analytics-player-scroll{padding-bottom:5px}.analytics-player-identity{position:sticky;left:0;z-index:1;background:#05101e;min-height:55px}.analytics-wide .analytics-pair{grid-template-columns:110px 1fr 1fr}.analytics-wide .analytics-pair-value b{min-width:35px;font-size:10px}.match-dashboard-page .match-mvps-grid{grid-template-columns:1fr}}
 @media(max-width:480px){.analytics-support{grid-template-columns:1fr}.analytics-team-summary dl{gap:7px 4px}.analytics-team-summary dd{font-size:10px}.analytics-team-score{min-width:86px}.analytics-team-score h2{font-size:11px}.analytics-nav{padding-bottom:8px}.analytics-panel>header{flex-wrap:nowrap}.analytics-pair{font-size:10px;min-height:26px}.analytics-capture-chart{min-height:130px}}
 @media(prefers-reduced-motion:reduce){#match-analytics *,#match-analytics *::before{transition:none!important}}
+
+/* Keep dense match data readable at the browser's default zoom. */
+#match-analytics{font-size:13px}
+.analytics-tabs button,.analytics-back-link,.analytics-filter button,.analytics-download-links :is(button,a){font-size:12px}
+.analytics-filter>span{font-size:12px}
+.analytics-team-score h2,.analytics-player-team h2,.analytics-panel h2{font-size:14px}
+.analytics-winner,.analytics-player-team>header>span{font-size:11px}
+.analytics-team-summary dt,.analytics-player-columns{font-size:10px}
+.analytics-team-summary dd,#match-analytics .analytics-player-name{font-size:13px}
+.analytics-mvp-badge{font-size:10px}
+.analytics-player-class{font-size:12px}
+.analytics-player-metrics dt{font-size:9px}
+.analytics-player-metrics dd,.analytics-weapon-mini{font-size:12px}
+.analytics-round-mini>strong{font-size:14px}
+.analytics-round-mini text{font:9px Inter,sans-serif}
+#match-analytics h3{font-size:13px}
+.analytics-detail-line,.analytics-detail-table{font-size:12px}
+.analytics-detail-line small,.analytics-detail-table th,.analytics-note,.analytics-round-totals dt,.analytics-chart-detail{font-size:11px}
+.analytics-detail-table caption,.analytics-empty{font-size:12px}
+.analytics-legend{font-size:10px}
+.analytics-pair{font-size:11px}
+.analytics-pair-value b{font-size:10px}
+.analytics-capture-chart text{font:11px Inter,sans-serif}
+.match-dashboard-page .round-scroll-hint,#match-analytics .match-buildings-table,#match-analytics .match-buildings-table caption,#match-analytics .match-buildings-table thead{font-size:12px}
+
+@media(max-width:480px){
+  .analytics-team-summary dd,.analytics-team-score h2{font-size:12px}
+  .analytics-pair{font-size:11px}
+}
