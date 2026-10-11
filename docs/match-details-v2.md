@@ -109,7 +109,7 @@ Controls and player rows use the control radius, support panels use the panel ra
 
 Eight views are available: Player Overview, Team Comparison, Round Timeline, Flag Pace, Weapon Usage, Damage, Map Vision, and Downloads. Native buttons implement a tablist with a single active tab stop, `aria-selected`, and a labelled tabpanel. Arrow Left/Right cycle through enabled tabs; Home/End select the first/last enabled tab. Both, Team 1, and Team 2 filters use `aria-pressed` and apply consistently to summaries and analytical views.
 
-Controls show an explicit focus outline of (2px) with an offset of (3px). Hover adds a lighter navy surface and blue border. Disabled views retain an explanatory title, reduced opacity, and a default cursor. Flag Pace, Round Timeline, and Weapon Usage are disabled when their required records are absent. Reduced-motion preferences remove analytics transitions.
+Controls show an explicit focus outline of (2px) with an offset of (3px). Hover adds a lighter navy surface and blue border. Disabled views retain an explanatory title, reduced opacity, and a default cursor. Round Timeline and Weapon Usage are disabled when their required records are absent; Flag Pace stays accessible with an explicit empty state when the API supplies no capture events. Reduced-motion preferences remove analytics transitions.
 
 ### Player rows and expanded statistics
 
@@ -121,7 +121,9 @@ Engineer information reuses `renderEngineerBuildings` rather than implementing a
 
 Overview shows five class entries and six weapon entries ranked by pooled totals; notes identify truncated overview lists and point users to complete player detail records. Comparison bars use actual values and scale each pair against its larger finite value. Damage totals and per-kill/per-death ratios are distinct rows.
 
-Round Performance and Flag Pace draw cumulative capture steps using exact event timestamps on the full match clock. Capture points have accessible names and can be hovered or focused to reveal team, capture number, time, and player in a live detail area. No timestamped captures produces an explicit empty state; the overview falls back to recorded round scores when available.
+Round Performance retains cumulative capture steps on the full match clock. Flag Pace compares separate round/team series on a shared round-relative axis: Round 1 is solid, Round 2 dashed, and every series starts at 00:00 with zero captures. The API's concatenated gameplay timestamps are converted only for display by subtracting the sum of preceding recorded round durations. Replay recording epochs include different recording boundaries and are not used. Capture points have accessible names and can be hovered or focused to reveal round, team, capture number, relative time, and player. The capture table identifies each round and shows the same relative time while preserving event order.
+
+Missing, invalid, duplicated, or nonconsecutive round durations stop boundary calculation; captures without a verified boundary remain in the table with unavailable round/time and are excluded from the chart. A capture exactly on a shared round boundary is also unavailable: the API supplies no capture round ID to distinguish the previous round's final second from the next round's zero. No captures produces an explicit empty state, accessible through the Flag Pace tab. Missing timeline records cannot be reconstructed from aggregate capture totals; parser/API ingestion is separate from this frontend correction. The overview still falls back to recorded round scores when available.
 
 ### Map Vision and downloads
 
@@ -135,7 +137,8 @@ JSON exports the full match API response regardless of team selection. CSV expor
 - Do retain team labels, explicit metric definitions, keyboard access, and internal table scrolling.
 - Do show unavailable data as `—` and preserve complete-record checks for round-derived metrics.
 - Don't convert weapon kill counts into shots fired, weapon shares into aggregate kill shares, or pooled class time into elapsed match duration.
-- Don't shift capture timestamps by round duration or infer score points when the source omits them.
+- Do convert Flag Pace timestamps using recorded preceding round durations, preserving the original response and stored timestamps.
+- Don't assume a fixed round duration, substitute replay recording start times, or infer score points when the source omits them.
 - Don't turn this compact match composition into a requirement for unrelated screens.
 
 ## Metric sources and interpretation
@@ -155,18 +158,19 @@ The page loads `api/match/{id}`. Player matching reuses the incumbent key/Steam 
 | Weapon Usage / player bars | Returned `weapon_stats.kills` | The API query has `LIMIT 50`. Percentages divide a weapon's returned kills by that player's total returned weapon kills, not aggregate player kills. Counts describe recorded kills, not firing frequency. |
 | Damage / kill, Damage / death | Team enemy damage / team kills or deaths | Missing inputs or zero denominators produce `—`; no invented finite ratio. |
 | Duration | Sum `rounds.duration_seconds` | Requires valid duration for every returned round. |
-| Capture chart | Sorted nonnegative `capTimeline.time_seconds`; cumulative count per team | Axis extent covers the full duration and latest event. D9M3FT spans roughly 31 minutes. Timestamps already use the whole-match clock; no round offset is added. |
+| Capture chart | Sorted nonnegative `capTimeline.time_seconds`; Flag Pace subtracts preceding `rounds.duration_seconds` | Flag Pace resets counts for each round/team series and uses a shared round-relative axis. Unknown boundaries produce unavailable values, never guessed offsets. Overview Round Performance retains the full match clock. |
 | Score after capture | `capTimeline.score_after` | Null values remain `—`. The chart counts actual captures and does not manufacture score points. |
 
 ## Recorded verification
 
-The public reference inspected on October 10, 2026 was [D9M3FT](https://nonamepickup.servehalflife.com/match.html?id=D9M3FT), on `demolish2_b6`, with score (100:70) and duration (30:41). The validation record reconciles all eight players, sixteen round records, and seventeen captures. It records zero page errors and successful checks of all tabs, team filters, mouse/keyboard expansion, keyboard tab navigation, exact capture detail at (29:26), and both replay links. Empty and incomplete data states were also checked.
+The public reference inspected on October 10, 2026 was [D9M3FT](https://nonamepickup.servehalflife.com/match.html?id=D9M3FT), on `demolish2_b6`, with score (100:70) and duration (30:41). The validation record reconciles all eight players, sixteen round records, and seventeen captures. It records zero page errors and successful checks of all tabs, team filters, mouse/keyboard expansion, keyboard tab navigation, and both replay links. Flag Pace's seventeen relative timestamps were independently compared to the original Hampalyzer flag chart: Round 2 runs from its first capture at 02:20 through its seventh at 13:45, using the recorded Round 1 duration of 941 seconds. Both rounds start at 00:00 and each series starts at zero. Empty and incomplete data states were also checked.
 
 JSON Blob payloads matched the full response; filtered CSV Blob payloads contained the selected team's four players. Actual browser file saving was canceled by the sandbox, so payload validation is the completed export evidence.
 
 Evidence is saved in `C:/Users/riari/.codex/visualizations/2026/10/11/01a128a1-45ef-7893-9549-9de92f44df66/`:
 
 - `dashboard-validation.json` — reconciliation and interaction results.
+- `flag-pace-validation.json`, `flag-pace-desktop.png`, `flag-pace-mobile.png` — round-relative capture verification and focused viewport captures.
 - `desktop-final.png`, `tablet-final.png`, `mobile-final.png` — final viewport captures.
 - `replay-1.json`, `replay-2.json` — returned replay metadata.
 - `main-tests.log` — existing suite result: 119 tests, 104 passed, 15 pre-existing failures outside the Match Details changes. The API package defines no lint or build scripts.

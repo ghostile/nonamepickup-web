@@ -114,15 +114,44 @@ window.matchDashboard = (() => {
     return panel("Damage Comparison",specs.map(([label,get])=>pair(label,data.teams.map(t=>get(t.totals)),v=>format(v,label.includes("/")?1:0),"",filter)).join(""),"Enemy damage and friendly damage kept separate");
   }
 
-  function captures(data,filter) {
+  // capTimeline uses concatenated gameplay time, not replay recording epochs.
+  // Build offsets from recorded round lengths; never assume a round duration.
+  function flagPaceRounds(data) {
+    let start=0;
+    const rounds=[];
+    for(const round of data.rounds.slice().sort((a,b)=>Number(a.round_num)-Number(b.round_num))){
+      const id=num(round.round_num),duration=num(round.duration_seconds);
+      if(id!==rounds.length+1||duration===null||duration<=0||data.rounds.filter(r=>num(r.round_num)===id).length!==1)break;
+      rounds.push({id,start,duration,end:start+duration,events:[]});
+      start+=duration;
+    }
+    const events=data.events.map(event=>{
+      const time=Number(event.time_seconds);
+      let round=rounds.find(r=>time>=r.start&&time<=r.end);
+      // The API has no round ID on captures. A shared boundary could be the
+      // previous round's final second or the next round's zero; do not guess.
+      if(round&&time===round.end&&data.roundIds.some(id=>id>round.id))round=null;
+      const relative={...event,round:round?.id??null,round_time_seconds:round?time-round.start:null};
+      if(round)round.events.push(relative);
+      return relative;
+    });
+    return {rounds,events};
+  }
+  const paceClock = seconds => seconds===null?"—":clock(seconds).padStart(5,"0");
+
+  function captures(data,filter,rounds=null) {
     if(!data.events.length)return empty("No timestamped captures recorded");
-    const max=Math.max(1,...data.teams.map(t=>data.events.filter(e=>capTeamClass(e.team)===t.color).length));
-    const x=s=>32+s/data.extent*476,y=n=>154-n/max*140;
-    return `<svg class="analytics-capture-chart" viewBox="0 0 520 180" role="img" aria-label="Cumulative captures on the full match clock; hover or focus capture points for details">${[0,1,2,3,4].map(i=>`<line class="chart-grid" x1="32" x2="508" y1="${y(max*i/4)}" y2="${y(max*i/4)}"/><text x="25" y="${y(max*i/4)+4}" text-anchor="end">${format(max*i/4,Number.isInteger(max*i/4)?0:1)}</text><text x="${x(data.extent*i/4)}" y="174" text-anchor="${i===0?"start":i===4?"end":"middle"}">${clock(data.extent*i/4)}</text>`).join("")}${data.teams.filter(t=>filter==="both"||filter===t.color).map(t=>{
+    if(rounds&&!rounds.length)return empty("Round-relative capture times unavailable: recorded round boundaries are missing.");
+    const groups=rounds?rounds.map(r=>({id:r.id,events:r.events,duration:r.duration})):[{id:null,events:data.events,duration:data.extent}];
+    const extent=Math.max(1,...groups.map(g=>g.duration)),visibleTeams=data.teams.filter(t=>filter==="both"||filter===t.color);
+    const max=Math.max(1,...groups.flatMap(g=>(rounds?visibleTeams:data.teams).map(t=>g.events.filter(e=>capTeamClass(e.team)===t.color).length)));
+    const time=e=>rounds?e.round_time_seconds:Number(e.time_seconds),displayTime=rounds?paceClock:clock;
+    const x=s=>32+s/extent*476,y=n=>154-n/max*140;
+    return `<svg class="analytics-capture-chart" viewBox="0 0 520 180" role="img" aria-label="Cumulative captures on the ${rounds?"round-relative":"full match"} clock; hover or focus capture points for details">${[0,1,2,3,4].map(i=>`<line class="chart-grid" x1="32" x2="508" y1="${y(max*i/4)}" y2="${y(max*i/4)}"/><text x="25" y="${y(max*i/4)+4}" text-anchor="end">${format(max*i/4,Number.isInteger(max*i/4)?0:1)}</text><text x="${x(extent*i/4)}" y="174" text-anchor="${i===0?"start":i===4?"end":"middle"}">${displayTime(extent*i/4)}</text>`).join("")}${groups.map(g=>visibleTeams.map(t=>{
       let count=0,path=`M${x(0)},${y(0)}`;
-      const dots=data.events.filter(e=>capTeamClass(e.team)===t.color).map(e=>{count++;path+=` H${x(Number(e.time_seconds))} V${y(count)}`;const title=`${t.label} · Capture ${e.cap_num||count} · ${clock(Number(e.time_seconds))}${e.capper_name?` · ${e.capper_name}`:""}`;return `<circle class="${t.color}" cx="${x(Number(e.time_seconds))}" cy="${y(count)}" r="3" tabindex="0" data-capture="${attr(title)}" aria-label="${attr(title)}"><title>${esc(title)}</title></circle>`;}).join("");
-      return `<path class="${t.color}" d="${path} H${x(data.extent)}"/>${dots}`;
-    }).join("")}</svg><p class="analytics-chart-detail" aria-live="polite">Cumulative captures · match clock</p>`;
+      const dots=g.events.filter(e=>capTeamClass(e.team)===t.color).map(e=>{count++;path+=` H${x(time(e))} V${y(count)}`;const title=`${g.id?`Round ${g.id} · `:""}${t.label} · Capture ${e.cap_num||count} · ${displayTime(time(e))}${e.capper_name?` · ${e.capper_name}`:""}`;return `<circle class="${t.color}" cx="${x(time(e))}" cy="${y(count)}" r="3" tabindex="0" data-capture="${attr(title)}" aria-label="${attr(title)}"><title>${esc(title)}</title></circle>`;}).join("");
+      return `<path class="${t.color}" ${g.id?`data-capture-round="${g.id}" aria-label="Round ${g.id}, ${t.label}" ${g.id>1?`stroke-dasharray="${g.id*3} 4"`:""}`:""} d="${path} H${x(g.duration)}"/>${dots}`;
+    }).join("")).join("")}</svg><p class="analytics-chart-detail" aria-live="polite">Cumulative captures · ${rounds?"round clock · "+rounds.map(r=>`R${r.id} ${r.id===1?"solid":"dashed"}`).join(" · "):"match clock"}</p>`;
   }
   const roundPanel=(data,filter)=>panel("Round Performance",data.events.length?captures(data,filter):data.rounds.map(r=>pair(`Round ${r.round_num}`,[num(r.team1_score),num(r.team2_score)],format,"",filter)).join("")||empty("No round results"),data.events.length?"Cumulative captures · exact event timestamps":"Recorded round scores");
   const comparison=(data,filter)=>panel("Team Comparison",fields.map(([key,,description])=>pair(description,data.teams.map(t=>t.totals[key]),v=>key==="flag_time_seconds"?clock(v):format(v,key==="kd"?2:0),"",filter)).join(""),"Full match totals · CJ = concussion jumps",true);
@@ -133,7 +162,8 @@ window.matchDashboard = (() => {
     }).join("")||empty("No round records"))).join("")}</div>`;
   }
   function pace(data,filter) {
-    return panel("Flag Pace",captures(data,filter)+`<div class="analytics-table-scroll" tabindex="0" role="region" aria-label="Capture events"><table class="analytics-detail-table"><thead><tr><th>Time</th><th>Team</th><th>Capture</th><th>Player</th><th>Score after</th><th>Touches</th></tr></thead><tbody>${data.events.filter(e=>filter==="both"||capTeamClass(e.team)===filter).map(e=>`<tr class="${capTeamClass(e.team)}"><td>${clock(Number(e.time_seconds))}</td><td>${esc(capTeamLabel(e.team))}</td><td>${format(num(e.cap_num))}</td><td>${esc(e.capper_name||"Unknown player")}</td><td>${esc(e.score_after??"—")}</td><td>${format(num(e.touches))}</td></tr>`).join("")}</tbody></table></div>`,"Full match clock · score per capture is not supplied; this chart counts recorded captures",true);
+    const {rounds,events}=flagPaceRounds(data),unassigned=events.filter(e=>e.round===null).length;
+    return panel("Flag Pace",captures(data,filter,rounds)+`${unassigned?empty(`${unassigned} capture(s) have no verified round boundary; their round and relative time are unavailable.`):""}<div class="analytics-table-scroll" tabindex="0" role="region" aria-label="Capture events"><table class="analytics-detail-table"><thead><tr><th>Round</th><th>Round time</th><th>Team</th><th>Capture</th><th>Player</th><th>Score after</th><th>Touches</th></tr></thead><tbody>${events.filter(e=>filter==="both"||capTeamClass(e.team)===filter).map(e=>`<tr class="${capTeamClass(e.team)}"><td>${e.round===null?"—":`R${e.round}`}</td><td>${paceClock(e.round_time_seconds)}</td><td>${esc(capTeamLabel(e.team))}</td><td>${format(num(e.cap_num))}</td><td>${esc(e.capper_name||"Unknown player")}</td><td>${esc(e.score_after??"—")}</td><td>${format(num(e.touches))}</td></tr>`).join("")||'<tr><td colspan="7">The match API returned no timestamped captures.</td></tr>'}</tbody></table></div>`,"Each round starts at 00:00 with zero captures · recorded captures, not score points",true);
   }
   function downloads(data) {
     return panel("Downloads & Match Sources",`<div class="analytics-download-links"><button type="button" data-export="json">Match data · JSON ↓</button><button type="button" data-export="csv">Player statistics · CSV ↓</button>${data.match.hampalyzer_url?`<a href="${attr(data.match.hampalyzer_url)}" target="_blank" rel="noopener noreferrer">Hampalyzer ↗</a>`:""}${data.match.tfcstats_url?`<a href="${attr(data.match.tfcstats_url)}" target="_blank" rel="noopener noreferrer">TFCStats ↗</a>`:""}</div><div data-replay-links></div>`,"Export the actual API response or the current team selection.",true);
@@ -142,7 +172,7 @@ window.matchDashboard = (() => {
   function mount(root,match) {
     const data=model(match);let active="overview",filter="both",replays=[],replaysLoaded=false;
     const tabs=[["overview","Player Overview"],["comparison","Team Comparison"],["timeline","Round Timeline"],["pace","Flag Pace"],["weapons","Weapon Usage"],["damage","Damage"],["vision","Map Vision"],["downloads","Downloads"]];
-    const enabled=id=>(id!=="vision"||replays.length>0)&&(id!=="pace"||data.events.length>0)&&(id!=="timeline"||data.roundIds.length>0)&&(id!=="weapons"||data.teams.some(t=>t.players.some(p=>p.weapons.length)));
+    const enabled=id=>(id!=="vision"||replays.length>0)&&(id!=="timeline"||data.roundIds.length>0)&&(id!=="weapons"||data.teams.some(t=>t.players.some(p=>p.weapons.length)));
     root.innerHTML=`<div class="analytics-nav"><div class="analytics-tabs" role="tablist" aria-label="Match analytics">${tabs.map(([id,label])=>`<button type="button" id="analytics-tab-${id}" data-analytics-tab="${id}" role="tab" aria-controls="analytics-content" aria-selected="${id===active}" tabindex="${id===active?0:-1}" ${enabled(id)?"":`disabled title="${id==="vision"?"Match statistics contain no positions. Checking recorded replays.":"No recorded data for this view."}"`}>${label}</button>`).join("")}</div><div class="analytics-filter" role="group" aria-label="Team view"><span>View:</span>${[["both","Both"],["blue","Team 1"],["red","Team 2"]].map(([id,label])=>`<button type="button" data-team-filter="${id}" aria-pressed="${id===filter}">${label}</button>`).join("")}</div></div><div class="analytics-summaries">${data.teams.map(summary).join("")}</div><div id="analytics-content" role="tabpanel" aria-labelledby="analytics-tab-overview" tabindex="0"></div>`;
     const content=root.querySelector("#analytics-content");
     function renderReplays() {
