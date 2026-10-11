@@ -63,7 +63,7 @@ components:
 
 This document describes only `match.html` and its match dashboard. It extends the incumbent navy, blue, and red visual system in Operate mode: users compare teams, inspect player and round performance, explore captures, and open recorded replays. It does not establish a new site-wide identity or change other screens.
 
-The page retains the shared navigation, real match metadata, map preview, score, external sources, and round tables. Compact team summaries and expandable player rows lead into class, weapon, damage, and capture comparisons. Existing Hampalyzer and NoName MVP analysis remains available through a disclosure.
+The page retains the shared navigation, real match metadata, map preview, score, external sources, and round tables. Compact team summaries and expandable player rows lead into class, weapon, damage, and capture comparisons. The lower MVP analysis disclosure has been removed. A Back to Matches link sits beside Downloads, outside the analytics tablist.
 
 Implementation sources are `assets/css/match-dashboard.css`, `assets/js/match-analytics.js`, `assets/js/match.js`, and `match.html`. Round-relative capture normalization is shared through `assets/js/capture-timeline.js`, also loaded by `matches.html` for its sidebar renderer in `assets/js/matches.js`. The dashboard stylesheet loads after the incumbent `match.css`. Shared style overrides are scoped to the match document/page; analytics behavior mounts inside `#match-analytics`.
 
