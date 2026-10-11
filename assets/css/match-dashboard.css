@@ -1,6 +1,6 @@
 /* Match Details V2; all shared page styles are deliberately scoped. */
 .match-dashboard-document{--desktop-ui-scale:1}
-.match-dashboard-page{background:#030911;color:#dce9fa;font-family:Inter,system-ui,sans-serif}
+.match-dashboard-page{color:#dce9fa;font-family:Inter,system-ui,sans-serif}
 .match-dashboard-page .site-bg-grid,.match-dashboard-page .site-bg-glow{display:none}
 .match-dashboard-page main.match-main{width:min(97vw,1760px)!important;padding:calc(var(--page-top-gap) * var(--standard-desktop-ui-scale)) 0 24px!important}
 .match-dashboard-page .match-shell{padding:0!important}
