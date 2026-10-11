@@ -14,8 +14,8 @@ function securityHeaders(req, res, next) {
       "img-src 'self' data: https://tfcmaps.net https://*.steamstatic.com https://steamcdn-a.akamaihd.net; " +
       "font-src 'self' https://fonts.gstatic.com; " +
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-      "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; " +
-      "frame-src https://player.twitch.tv; connect-src 'self'"
+      "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com/beacon.min.js; " +
+      "frame-src https://player.twitch.tv; connect-src 'self' https://cloudflareinsights.com/cdn-cgi/rum"
   );
   next();
 }
