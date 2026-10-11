@@ -162,12 +162,13 @@
 .matches2-panel {
   display: flex;
   flex-direction: column;
-  height: min(760px, calc(100vh - 108px));
+  height: var(--matches2-workspace-height);
   min-height: 0;
   padding: 18px;
 }
 
 .matches2-browser-layout {
+  --matches2-workspace-height: 920px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
   gap: 18px;
@@ -182,7 +183,7 @@
   position: sticky;
   top: 88px;
   min-width: 0;
-  height: min(760px, calc(100vh - 108px));
+  height: var(--matches2-workspace-height);
 }
 
 .m2-viewer-empty,
