@@ -602,17 +602,20 @@ function renderEngineerBuildings(rows){
   const dispenserValues=rows.map(row=>row.dispenser_seconds);
   const dispenser=dispenserValues.every(value=>value!==null&&value!==undefined)
     ?dispenserValues.reduce((a,b)=>a+Number(b),0):null;
+  const hasSentry=["1","2","3","unknown"].some(level=>
+    ["kills","seconds"].some(metric=>total(level,metric)!==null));
+  if(!hasSentry&&dispenser===null)return"";
   const notes=[...new Set(rows.flatMap(row=>Array.isArray(row.notes)?row.notes:[]))];
   return `
     <section class="match-buildings" aria-label="Engineer buildings">
       <h3>Engineer Buildings</h3>
-      <table class="match-buildings-table">
+      ${hasSentry?`<table class="match-buildings-table">
         <caption>Building uptime across recorded rounds</caption>
         <thead><tr><th scope="col">Sentry gun</th><th scope="col">Kills</th><th scope="col">Uptime</th></tr></thead>
         <tbody>${levels.map(level=>`<tr><th scope="row">${level==="unknown"?"Unknown level":`Level ${level}`}</th><td>${kills(total(level,"kills"))}</td><td>${uptime(total(level,"seconds"))}</td></tr>`).join("")}</tbody>
         <tfoot><tr><th scope="row">Total SG</th><td>${kills(sum("kills"))}</td><td>${uptime(sum("seconds"))}</td></tr></tfoot>
-      </table>
-      <div class="match-mini-row match-dispenser"><span>Dispenser uptime</span><b>${uptime(dispenser)}</b></div>
+      </table>`:""}
+      ${dispenser!==null?`<div class="match-mini-row match-dispenser"><span>Dispenser uptime</span><b>${uptime(dispenser)}</b></div>`:""}
       ${notes.length?`<details class="match-building-notes"><summary>Recording notes</summary><ul>${notes.map(note=>`<li>${escapeHtml(note)}</li>`).join("")}</ul></details>`:""}
     </section>
   `;
