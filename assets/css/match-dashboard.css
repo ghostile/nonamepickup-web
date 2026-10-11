@@ -66,9 +66,8 @@
 .analytics-player-team>header>span{color:var(--analytics-muted);font-size:9px}
 .analytics-player-scroll,.analytics-table-scroll{overflow-x:auto;max-width:100%}
 .analytics-player-grid{min-width:605px}
-.analytics-player-columns,.analytics-player>summary{display:grid;grid-template-columns:minmax(135px,1.25fr) minmax(218px,2.05fr) minmax(115px,1.1fr) minmax(85px,.75fr);gap:8px;align-items:center}
+.analytics-player-columns,.analytics-player>summary{display:grid;grid-template-columns:minmax(150px,1.3fr) minmax(300px,2.5fr) minmax(120px,1.1fr);gap:8px;align-items:center}
 .analytics-player-columns{padding:0 7px 5px;font-size:8px;color:#94c7ed;text-transform:uppercase}
-.analytics-player-columns>span:last-child{text-align:center}
 .analytics-player{border:1px solid #163750;background:#05101e;border-radius:5px;margin-bottom:4px;overflow:hidden}
 .analytics-player:last-child{margin-bottom:0}
 .analytics-player>summary{padding:7px;min-height:70px;list-style:none;cursor:pointer;color:#dfecff}
@@ -104,12 +103,6 @@
 .analytics-bar-track{display:block;background:#101e2d;border:1px solid #172638;border-radius:2px;height:7px;flex:1;min-width:12px;overflow:hidden}
 .analytics-bar-track>span{display:block;background:#4cabf5;height:100%;border-radius:1px}
 .red .analytics-bar-track>span{background:#ef4865}
-.analytics-round-mini{min-width:0;align-self:stretch;padding:0 2px;color:#37aefe}
-.red .analytics-round-mini{color:#ff496b}
-.analytics-round-mini>strong{display:block;color:#fff;font-size:12px;line-height:1;text-align:center}
-.analytics-round-mini svg{display:block;width:100%;height:42px;overflow:visible}
-.analytics-round-mini polyline{fill:none;stroke:currentColor;stroke-width:1.5}.analytics-round-mini circle{fill:currentColor}
-.analytics-round-mini text{font:7px Inter,sans-serif;fill:#acc5dc}
 .analytics-player-detail{padding:10px;background:#061322}
 .analytics-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 #match-analytics h3{font-size:11px;font-weight:700;color:#daeaff;margin:0 0 7px}
@@ -166,7 +159,7 @@
 .analytics-pair:has(.analytics-pair-value[hidden]){grid-template-columns:minmax(65px,1.1fr) minmax(0,2fr)}
 .analytics-wide .analytics-pair:has(.analytics-pair-value[hidden]){grid-template-columns:minmax(170px,1fr) 4fr}
 @media(max-width:760px){.match-dashboard-page main.match-main{width:100%!important;padding:8px!important}.match-dashboard-page .match-top-grid{grid-template-columns:1fr}.match-dashboard-page .match-top-grid .score-map{display:none}.match-dashboard-page .match-top-grid .match-mvp-pill{margin:0;line-height:1.5;white-space:normal}.analytics-wide .analytics-pair:has(.analytics-pair-value[hidden]){grid-template-columns:110px 2fr}}
-@media(min-width:1500px){.analytics-player-grid{min-width:680px}.analytics-player-columns,.analytics-player>summary{grid-template-columns:minmax(145px,1.2fr) minmax(245px,2fr) minmax(140px,1.1fr) minmax(95px,.8fr)}.analytics-player-metrics dd{font-size:11px}.analytics-player>summary{min-height:76px}.analytics-team-summary dl{grid-template-columns:repeat(11,minmax(0,1fr))}}
+@media(min-width:1500px){.analytics-player-grid{min-width:680px}.analytics-player-columns,.analytics-player>summary{grid-template-columns:minmax(175px,1.4fr) minmax(350px,2.8fr) minmax(140px,1.1fr)}.analytics-player-metrics dd{font-size:11px}.analytics-player>summary{min-height:76px}.analytics-team-summary dl{grid-template-columns:repeat(11,minmax(0,1fr))}}
 @media(max-width:1150px){.analytics-nav{flex-wrap:wrap;gap:6px}.analytics-navigation-links{flex:1 1 100%}.analytics-filter{margin-left:auto}.analytics-support{grid-template-columns:repeat(2,minmax(0,1fr))}.analytics-team-summary{padding:9px;gap:6px}.analytics-team-score{min-width:83px}.analytics-team-score h2{flex-wrap:wrap}}
 @media(max-width:760px){.match-dashboard-page .match-main{width:100%;padding:8px!important}.match-dashboard-page .match-top-grid{grid-template-columns:1fr;gap:8px}.match-dashboard-page .match-hero{min-height:0}.match-dashboard-page .score-content{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px}.match-dashboard-page .score-map{display:none}.match-dashboard-page .score-row{margin:0;width:100%;grid-template-columns:minmax(0,1fr) 32px minmax(0,1fr);gap:8px}.match-dashboard-page .match-top-grid .score-team{min-width:0;padding:10px 12px}.match-dashboard-page .match-top-grid .score-team strong{font-size:clamp(24px,7vw,36px)}.match-dashboard-page .match-mvp-pill{margin:0}.match-dashboard-page .rounds-layout,.analytics-summaries,.analytics-players,.analytics-two-col{grid-template-columns:1fr}.analytics-support{grid-template-columns:repeat(2,minmax(0,1fr))}.analytics-team-summary dl{grid-template-columns:repeat(6,minmax(0,1fr))}.analytics-team-score{min-width:96px}.analytics-player-grid{min-width:605px}.analytics-tabs button{padding:9px 12px}.analytics-filter button{padding:8px 12px}.analytics-panel{padding:9px}.analytics-panel>header{flex-wrap:wrap}.analytics-player-scroll{padding-bottom:5px}.analytics-player-identity{position:sticky;left:0;z-index:1;background:#05101e;min-height:55px}.analytics-wide .analytics-pair{grid-template-columns:110px 1fr 1fr}.analytics-wide .analytics-pair-value b{min-width:35px;font-size:10px}.match-dashboard-page .match-mvps-grid{grid-template-columns:1fr}}
 @media(max-width:480px){.analytics-support{grid-template-columns:1fr}.analytics-team-summary dl{gap:7px 4px}.analytics-team-summary dd{font-size:10px}.analytics-team-score{min-width:86px}.analytics-team-score h2{font-size:11px}.analytics-nav{padding-bottom:8px}.analytics-panel>header{flex-wrap:nowrap}.analytics-pair{font-size:10px;min-height:26px}.analytics-capture-chart{min-height:130px}}
@@ -184,8 +177,6 @@
 .analytics-player-class{font-size:14px}
 .analytics-player-metrics dt{font-size:11px}
 .analytics-player-metrics dd,.analytics-weapon-mini{font-size:14px}
-.analytics-round-mini>strong{font-size:16px}
-.analytics-round-mini text{font:11px Inter,sans-serif}
 #match-analytics h3{font-size:15px}
 .analytics-detail-line,.analytics-detail-table{font-size:14px}
 .analytics-detail-line small,.analytics-detail-table th,.analytics-note,.analytics-round-totals dt,.analytics-chart-detail{font-size:13px}
