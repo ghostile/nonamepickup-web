@@ -63,6 +63,7 @@ const playerNormName = nn.normName || (v => String(v || "").toLowerCase().replac
 const playerWeaponName = nn.weaponName || (v => v);
 const canonicalFetchJSON = nn.fetchJSON;
 const pageSupporterBadge = nn.supporterBadge || (() => "");
+const BOOMER_DISCORD_ID = "700890663385956393";
 
 async function fetchJSON(url){
   if(typeof canonicalFetchJSON==="function"){
@@ -155,6 +156,10 @@ function eloTierRank(elo){
   if(e>=721)return"2";
   if(e>=300)return"1";
   return"NR";
+}
+
+function playerEloTierRank(elo,playerId){
+  return String(playerId)===BOOMER_DISCORD_ID?"B":eloTierRank(elo);
 }
 
 function relativeTime(ts){
@@ -325,6 +330,8 @@ async function loadPlayerV3(){
 
   const playerName=player.name||playerId;
   const playerBadge=pageSupporterBadge(playerId);
+  const eloTier=playerEloTierRank(ratings.elo,playerId);
+  const eloTierTitle=String(playerId)===BOOMER_DISCORD_ID?' title="B is for Boomer"':"";
 
   setHtml(
       "player-name-v3",
@@ -340,13 +347,18 @@ async function loadPlayerV3(){
   setHtml("player-mark",avatarFallback+avatarImage);
   setHtml("player-elo-line",ratings.hidden
     ? 'Current Elo: <strong>Hidden</strong> <span>| Elo Tier: <strong>Hidden</strong></span>'
-    : 'Current Elo: <strong>'+Number(ratings.elo||0)+'</strong> <span>| Elo Tier: <strong>'+eloTierRank(ratings.elo)+'</strong></span>'
+    : 'Current Elo: <strong>'+Number(ratings.elo||0)+'</strong> <span>| Elo Tier: <strong'+eloTierTitle+'>'+eloTier+'</strong></span>'
   );
   setHtml("player-record-line",'Record: <strong>'+escapeHtml(ratings.record||"-")+'</strong> <span>| Win%: <b class="good">'+(ratings.win_pct??0)+'%</b></span>');
   setText("steam-line",player.steam_id?"SteamID: "+player.steam_id:"SteamID: Not linked");
   renderSpeedrunProfileLink(playerId);
   setText("player2-current-elo",ratings.hidden?"Hidden":String(Number(ratings.elo||0)));
-  setText("player2-elo-rank",ratings.hidden?"Hidden":eloTierRank(ratings.elo));
+  setText("player2-elo-rank",ratings.hidden?"Hidden":eloTier);
+  const eloRankEl=qs("player2-elo-rank");
+  if(eloRankEl){
+    if(eloTierTitle)eloRankEl.title="B is for Boomer";
+    else eloRankEl.removeAttribute("title");
+  }
   setText("player2-record",ratings.record||"-");
   setText("player2-win-pct",(ratings.win_pct??0)+"%");
 
