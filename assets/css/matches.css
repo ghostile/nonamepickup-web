@@ -1020,6 +1020,26 @@
   border: 1px solid rgba(251,146,60,.28);
 }
 
+.badge-playtest {
+  color: #ddd6fe;
+  background: rgba(139,92,246,.16);
+  border: 1px solid rgba(167,139,250,.28);
+}
+
+.matches2-match-card.row-playtest {
+  border-color: rgba(167,139,250,.28);
+}
+
+.matches2-match-card.row-playtest:hover,
+.matches2-match-card.row-playtest.m2-card-selected {
+  border-color: rgba(167,139,250,.5);
+}
+
+.row-playtest .m2-card-accent {
+  background: linear-gradient(180deg, #a78bfa, rgba(109,40,217,.28));
+  box-shadow: 0 0 16px rgba(167,139,250,.32);
+}
+
 .matches2-empty {
   text-align: center;
   padding: 38px 12px !important;

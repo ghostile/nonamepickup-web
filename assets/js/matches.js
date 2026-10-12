@@ -122,6 +122,7 @@
   }
 
   function winnerBadge(m) {
+    if (m.status === "playtest") return `<span class="winner-badge badge-playtest">PLAYTEST</span>`;
     const w = String(m.winner || "").toUpperCase();
     if (m.status === "pending" || !w) return `<span class="winner-badge badge-pending">PENDING</span>`;
     if (w === "BLUE") return `<span class="winner-badge badge-blue">BLUE</span>`;
@@ -167,16 +168,19 @@
   }
 
   function isCloseOrTie(m) {
+    if (m.status === "playtest") return false;
     const diff = scoreDiff(m);
     return m.winner === "TIE" || (diff != null && diff < 25);
   }
 
   function isWithin25(m) {
+    if (m.status === "playtest") return false;
     const diff = scoreDiff(m);
     return diff != null && diff <= 25;
   }
 
   function isBlowout(m) {
+    if (m.status === "playtest") return false;
     const diff = scoreDiff(m);
     return diff != null && diff > 25 && m.winner !== "TIE";
   }
@@ -204,6 +208,7 @@
     if (outcome === "close") rows = rows.filter(isCloseOrTie);
     if (outcome === "under25") rows = rows.filter(isWithin25);
     if (outcome === "blowout") rows = rows.filter(isBlowout);
+    if (outcome === "playtest") rows = rows.filter(m => m.status === "playtest");
     if (outcome === "pending") rows = rows.filter(m => m.status === "pending");
 
     rows.sort((a, b) => {
@@ -629,7 +634,7 @@
     body.innerHTML = pageRows.map(m => {
       const cardClasses = [
         "matches2-match-card",
-        winnerClass(m.winner),
+        m.status === "playtest" ? "row-playtest" : winnerClass(m.winner),
         m.status === "pending" ? "row-pending" : "",
         state.expandedMatchId === m.id ? "m2-card-selected" : ""
       ].filter(Boolean).join(" ");
