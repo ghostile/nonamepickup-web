@@ -1099,22 +1099,21 @@
 .boomer-medic-roamer{
   --boomer-medic-width:84px;
   --boomer-medic-height:204px;
-  --boomer-medic-half-height:102px;
   position:fixed;
   top:0;
   left:0;
   z-index:40;
   width:var(--boomer-medic-width);
+  visibility:hidden;
   pointer-events:none;
-  transform:translate3d(-110px,calc(100vh - var(--boomer-medic-height) - 8px),0);
-  animation:boomer-medic-roam 48s linear infinite;
+  transform:translate3d(10px,10px,0);
   contain:layout style;
   will-change:transform;
 }
+.boomer-medic-roamer.is-ready{visibility:visible}
 .boomer-medic-character{
   position:relative;
   transform-origin:50% 100%;
-  animation:boomer-medic-turn 48s steps(1,end) infinite;
 }
 .boomer-medic-waddle{
   position:relative;
@@ -1169,22 +1168,6 @@
   animation-play-state:paused!important;
 }
 
-@keyframes boomer-medic-roam{
-  0%,5%{transform:translate3d(8px,calc(100vh - var(--boomer-medic-height) - 8px),0)}
-  21%{transform:translate3d(calc(100vw - var(--boomer-medic-width) - 8px),calc(100vh - var(--boomer-medic-height) - 8px),0)}
-  26%{transform:translate3d(calc(100vw - var(--boomer-medic-width) - 12px),calc(58vh - var(--boomer-medic-half-height)),0)}
-  43%{transform:translate3d(8vw,calc(42vh - var(--boomer-medic-half-height)),0)}
-  59%{transform:translate3d(calc(100vw - var(--boomer-medic-width) - 18px),70px,0)}
-  64%{transform:translate3d(calc(100vw - var(--boomer-medic-width) - 18px),70px,0)}
-  80%{transform:translate3d(18vw,calc(72vh - var(--boomer-medic-half-height)),0)}
-  94%,100%{transform:translate3d(8px,calc(100vh - var(--boomer-medic-height) - 8px),0)}
-}
-@keyframes boomer-medic-turn{
-  0%,25.99%{transform:scaleX(1)}
-  26%,42.99%{transform:scaleX(-1)}
-  43%,63.99%{transform:scaleX(1)}
-  64%,100%{transform:scaleX(-1)}
-}
 @keyframes boomer-medic-waddle{
   from{transform:translate3d(0,0,0) rotate(-2.4deg)}
   to{transform:translate3d(0,-5px,0) rotate(2.4deg)}
@@ -1194,7 +1177,6 @@
   .boomer-medic-roamer{
     --boomer-medic-width:68px;
     --boomer-medic-height:165px;
-    --boomer-medic-half-height:82px;
   }
   .boomer-medic-cane{left:-7px;width:22px}
 }

@@ -162,6 +162,97 @@ function playerEloTierRank(elo,playerId){
   return String(playerId)===BOOMER_DISCORD_ID?"B":eloTierRank(elo);
 }
 
+function boomerRandomBetween(min,max){
+  return min+Math.random()*(max-min);
+}
+
+function startBoomerMedicWander(roamer){
+  const character=roamer.querySelector(".boomer-medic-character");
+  const reduceMotion=window.matchMedia?.("(prefers-reduced-motion: reduce)");
+  if(!character||reduceMotion?.matches)return;
+
+  let currentAnimation=null;
+  let wanderGeneration=0;
+  let resizeTimer=null;
+
+  const pointTransform=point=>`translate3d(${point.x}px,${point.y}px,0)`;
+  const randomPoint=()=>{
+    const width=roamer.offsetWidth||84;
+    const height=roamer.offsetHeight||204;
+    const inset=10;
+    return{
+      x:boomerRandomBetween(inset,Math.max(inset,window.innerWidth-width-inset)),
+      y:boomerRandomBetween(inset,Math.max(inset,window.innerHeight-height-inset))
+    };
+  };
+  const pause=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
+  const syncVisibility=()=>{
+    roamer.classList.toggle("is-paused",document.hidden);
+    if(!currentAnimation)return;
+    if(document.hidden)currentAnimation.pause();
+    else currentAnimation.play();
+  };
+
+  async function wander(generation){
+    let current=randomPoint();
+    roamer.style.transform=pointTransform(current);
+    roamer.classList.add("is-ready");
+
+    while(roamer.isConnected&&generation===wanderGeneration){
+      let next=randomPoint();
+      let distance=0;
+      const minimumDistance=Math.hypot(window.innerWidth,window.innerHeight)*.24;
+      for(let attempt=0;attempt<8;attempt+=1){
+        distance=Math.hypot(next.x-current.x,next.y-current.y);
+        if(distance>=minimumDistance)break;
+        next=randomPoint();
+      }
+      distance=Math.hypot(next.x-current.x,next.y-current.y);
+
+      const movingRight=next.x>=current.x;
+      character.style.transform=`scaleX(${movingRight?1:-1})`;
+      const speed=boomerRandomBetween(55,95);
+      const duration=Math.min(16000,Math.max(3200,(distance/speed)*1000));
+      currentAnimation=roamer.animate(
+        [
+          {transform:pointTransform(current)},
+          {transform:pointTransform(next)}
+        ],
+        {duration,easing:"linear",fill:"forwards"}
+      );
+      syncVisibility();
+
+      try{
+        await currentAnimation.finished;
+      }catch{
+        return;
+      }
+      if(generation!==wanderGeneration)return;
+
+      roamer.style.transform=pointTransform(next);
+      currentAnimation.cancel();
+      currentAnimation=null;
+      current=next;
+      await pause(boomerRandomBetween(550,2400));
+    }
+  }
+
+  const restart=()=>{
+    wanderGeneration+=1;
+    currentAnimation?.cancel();
+    currentAnimation=null;
+    wander(wanderGeneration);
+  };
+  const handleResize=()=>{
+    window.clearTimeout(resizeTimer);
+    resizeTimer=window.setTimeout(restart,160);
+  };
+
+  document.addEventListener("visibilitychange",syncVisibility);
+  window.addEventListener("resize",handleResize);
+  restart();
+}
+
 function renderBoomerMedic(playerId){
   document.querySelector(".boomer-medic-roamer")?.remove();
   if(String(playerId)!==BOOMER_DISCORD_ID)return;
@@ -181,10 +272,7 @@ function renderBoomerMedic(playerId){
     </div>
   `;
   document.body.appendChild(roamer);
-
-  const syncAnimation=()=>roamer.classList.toggle("is-paused",document.hidden);
-  document.addEventListener("visibilitychange",syncAnimation);
-  syncAnimation();
+  startBoomerMedicWander(roamer);
 }
 
 function relativeTime(ts){
