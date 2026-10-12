@@ -172,8 +172,11 @@ function renderBoomerMedic(playerId){
   roamer.innerHTML=`
     <div class="boomer-medic-character">
       <div class="boomer-medic-waddle">
+        <svg class="boomer-medic-cane" viewBox="0 0 30 128" focusable="false" aria-hidden="true">
+          <path class="boomer-medic-cane-outline" d="M23 10 C23 3 13 1 9 7 C6 12 9 17 15 18 L12 123"></path>
+          <path class="boomer-medic-cane-highlight" d="M23 10 C23 3 13 1 9 7 C6 12 9 17 15 18 L12 123"></path>
+        </svg>
         <img src="assets/images/classes/Medicold_tfc.png" alt="">
-        <span class="boomer-medic-stick"></span>
       </div>
     </div>
   `;

@@ -1097,21 +1097,24 @@
 
 /* A profile-only wanderer for the eternal B-tier Boomer. */
 .boomer-medic-roamer{
+  --boomer-medic-width:84px;
+  --boomer-medic-height:204px;
+  --boomer-medic-half-height:102px;
   position:fixed;
+  top:0;
   left:0;
-  bottom:max(4px,env(safe-area-inset-bottom));
   z-index:40;
-  width:84px;
+  width:var(--boomer-medic-width);
   pointer-events:none;
-  transform:translate3d(-140px,0,0);
-  animation:boomer-medic-roam 34s linear infinite;
-  contain:layout style paint;
+  transform:translate3d(-110px,calc(100vh - var(--boomer-medic-height) - 8px),0);
+  animation:boomer-medic-roam 48s linear infinite;
+  contain:layout style;
   will-change:transform;
 }
 .boomer-medic-character{
   position:relative;
   transform-origin:50% 100%;
-  animation:boomer-medic-turn 34s steps(1,end) infinite;
+  animation:boomer-medic-turn 48s steps(1,end) infinite;
 }
 .boomer-medic-waddle{
   position:relative;
@@ -1138,29 +1141,28 @@
   height:auto;
   filter:drop-shadow(0 5px 7px rgba(0,0,0,.42));
 }
-.boomer-medic-stick{
+.boomer-medic-cane{
   position:absolute;
-  z-index:2;
-  right:5px;
-  bottom:3px;
-  width:5px;
-  height:50px;
-  border-radius:3px;
-  background:linear-gradient(90deg,#5b351e,#a66a35 48%,#4b2a19);
-  box-shadow:1px 3px 4px rgba(0,0,0,.38);
-  transform:rotate(9deg);
-  transform-origin:50% 100%;
+  z-index:0;
+  left:-8px;
+  bottom:1px;
+  width:26px;
+  height:62%;
+  overflow:visible;
+  filter:drop-shadow(1px 3px 2px rgba(0,0,0,.45));
 }
-.boomer-medic-stick::before{
-  content:"";
-  position:absolute;
-  top:-3px;
-  right:-9px;
-  width:14px;
-  height:5px;
-  border-radius:4px;
-  background:linear-gradient(180deg,#a66a35,#5b351e);
-  box-shadow:1px 2px 3px rgba(0,0,0,.3);
+.boomer-medic-cane path{
+  fill:none;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.boomer-medic-cane-outline{
+  stroke:#2b180f;
+  stroke-width:6;
+}
+.boomer-medic-cane-highlight{
+  stroke:#8b552f;
+  stroke-width:3;
 }
 .boomer-medic-roamer.is-paused,
 .boomer-medic-roamer.is-paused *{
@@ -1168,13 +1170,20 @@
 }
 
 @keyframes boomer-medic-roam{
-  0%,7%{transform:translate3d(-140px,0,0)}
-  46%,50%{transform:translate3d(calc(100vw + 28px),0,0)}
-  89%,100%{transform:translate3d(-140px,0,0)}
+  0%,5%{transform:translate3d(8px,calc(100vh - var(--boomer-medic-height) - 8px),0)}
+  21%{transform:translate3d(calc(100vw - var(--boomer-medic-width) - 8px),calc(100vh - var(--boomer-medic-height) - 8px),0)}
+  26%{transform:translate3d(calc(100vw - var(--boomer-medic-width) - 12px),calc(58vh - var(--boomer-medic-half-height)),0)}
+  43%{transform:translate3d(8vw,calc(42vh - var(--boomer-medic-half-height)),0)}
+  59%{transform:translate3d(calc(100vw - var(--boomer-medic-width) - 18px),70px,0)}
+  64%{transform:translate3d(calc(100vw - var(--boomer-medic-width) - 18px),70px,0)}
+  80%{transform:translate3d(18vw,calc(72vh - var(--boomer-medic-half-height)),0)}
+  94%,100%{transform:translate3d(8px,calc(100vh - var(--boomer-medic-height) - 8px),0)}
 }
 @keyframes boomer-medic-turn{
-  0%,49.99%{transform:scaleX(1)}
-  50%,100%{transform:scaleX(-1)}
+  0%,25.99%{transform:scaleX(1)}
+  26%,42.99%{transform:scaleX(-1)}
+  43%,63.99%{transform:scaleX(1)}
+  64%,100%{transform:scaleX(-1)}
 }
 @keyframes boomer-medic-waddle{
   from{transform:translate3d(0,0,0) rotate(-2.4deg)}
@@ -1182,9 +1191,12 @@
 }
 
 @media(max-width:640px){
-  .boomer-medic-roamer{width:68px}
-  .boomer-medic-stick{right:4px;height:40px;width:4px}
-  .boomer-medic-stick::before{right:-7px;width:11px;height:4px}
+  .boomer-medic-roamer{
+    --boomer-medic-width:68px;
+    --boomer-medic-height:165px;
+    --boomer-medic-half-height:82px;
+  }
+  .boomer-medic-cane{left:-7px;width:22px}
 }
 
 @media(prefers-reduced-motion:reduce){
