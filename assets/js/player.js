@@ -162,6 +162,28 @@ function playerEloTierRank(elo,playerId){
   return String(playerId)===BOOMER_DISCORD_ID?"B":eloTierRank(elo);
 }
 
+function renderBoomerMedic(playerId){
+  document.querySelector(".boomer-medic-roamer")?.remove();
+  if(String(playerId)!==BOOMER_DISCORD_ID)return;
+
+  const roamer=document.createElement("div");
+  roamer.className="boomer-medic-roamer";
+  roamer.setAttribute("aria-hidden","true");
+  roamer.innerHTML=`
+    <div class="boomer-medic-character">
+      <div class="boomer-medic-waddle">
+        <img src="assets/images/classes/Medicold_tfc.png" alt="">
+        <span class="boomer-medic-stick"></span>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(roamer);
+
+  const syncAnimation=()=>roamer.classList.toggle("is-paused",document.hidden);
+  document.addEventListener("visibilitychange",syncAnimation);
+  syncAnimation();
+}
+
 function relativeTime(ts){
   const diff=Math.max(0,Math.floor(Date.now()/1000)-Number(ts||0));
   if(diff<3600)return Math.max(1,Math.floor(diff/60))+" min ago";
@@ -281,6 +303,7 @@ async function loadPlayerV3(){
   }
 
   currentPlayerId=playerId;
+  renderBoomerMedic(playerId);
   currentFlagCarry=null;
   flagCarryMatches=[];
   flagCarryMatchesOffset=0;
