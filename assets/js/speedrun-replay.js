@@ -2608,6 +2608,8 @@ function updatePlayer() {
   if (clock) clock.textContent = formatTime(state.playbackTime);
   const runTimer = $("replay-run-timer");
   if (runTimer) runTimer.textContent = formatTime(Math.min(state.playbackTime, state.primaryDuration));
+  const splitTimer = $("replay-splits-current-time");
+  if (splitTimer) splitTimer.textContent = formatTime(Math.min(state.playbackTime, state.primaryDuration));
   updateSplitActiveState();
 }
 

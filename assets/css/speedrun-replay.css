@@ -626,6 +626,39 @@
   margin-bottom: 9px;
 }
 
+.replay-splits-heading-tools {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.replay-splits-live-clock {
+  min-width: 92px;
+  padding: 5px 8px;
+  border: 1px solid rgba(56, 189, 248, .35);
+  border-radius: 4px;
+  background: rgba(8, 47, 73, .45);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.replay-splits-live-clock span {
+  display: block;
+  color: #7dd3fc;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.replay-splits-live-clock strong {
+  display: block;
+  margin-top: 2px;
+  color: #f8fafc;
+  font-family: Orbitron, Inter, sans-serif;
+  font-size: 14px;
+  line-height: 1;
+}
+
 .replay-splits-kicker,
 .replay-splits-precision {
   color: #67e8f9;
