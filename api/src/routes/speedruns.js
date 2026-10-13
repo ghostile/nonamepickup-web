@@ -14,6 +14,7 @@ const {
 } = require("../speedruns/domain");
 const {
   buildSplitAnalysis,
+  deriveCheckpointEvents,
   parseRecordedSplitEvents
 } = require("../speedruns/splits");
 
@@ -776,10 +777,33 @@ function createSpeedrunsRouter({ logRouteError }) {
       "split_data",
       "events"
     ]));
+    let splitEvents = recordedSplitEvents;
+    let splitSource = "recorded";
+    if (!splitEvents.length && zones?.checkpoints?.length) {
+      const timing = replayTimingWindow(frames, replayTimeMs, zones.finish);
+      const derivedCheckpoints = deriveCheckpointEvents({
+        frames,
+        zones,
+        startTime: timing.startTime * 1000,
+        finishTime: replayTimeMs
+      });
+      if (derivedCheckpoints.length === zones.checkpoints.length) {
+        splitEvents = [
+          { kind: "start", elapsedMs: 0 },
+          ...derivedCheckpoints,
+          { kind: "finish", elapsedMs: replayTimeMs }
+        ];
+        splitSource = "replay-derived";
+      }
+    }
     const splitAnalysis = buildSplitAnalysis({
       timeMs: replayTimeMs,
-      events: recordedSplitEvents
+      events: splitEvents
     });
+    splitAnalysis.source = splitSource;
+    splitAnalysis.precision = splitAnalysis.available
+      ? splitSource === "recorded" ? "ms" : "frame"
+      : null;
     const splitMetadata = {
       map: metadata.map,
       classId,

@@ -705,7 +705,11 @@ function renderSplitAnalysis() {
     tr.innerHTML = `<td>${splitEventLabel(row)}</td><td>${elapsedText}</td><td>${row.segmentMs == null ? "—" : formatTime(Number(row.segmentMs) / 1000)}</td><td class="${cumulative.className}">${cumulative.text}</td><td class="${segment.className}">${segment.text}</td>`;
     body.appendChild(tr);
   }
-  if (precision) precision.textContent = state.splitAnalysis?.available ? "Recorded · ms" : "Start/finish only";
+  if (precision) {
+    precision.textContent = state.splitAnalysis?.available
+      ? state.splitAnalysis.source === "replay-derived" ? "Replay-derived · frame" : "Recorded · ms"
+      : "Start/finish only";
+  }
   if (status) {
     if (!state.splitAnalysis?.available) {
       status.textContent = comparison
@@ -716,7 +720,9 @@ function renderSplitAnalysis() {
     } else if (comparison) {
       status.textContent = "Negative deltas are ahead. Hover a delta for the segment comparison.";
     } else {
-      status.textContent = "Recorded checkpoint crossings. Select a PB, WR, or another compatible run to compare.";
+      status.textContent = state.splitAnalysis?.source === "replay-derived"
+        ? "Checkpoint crossings detected from replay movement frames. Select a PB, WR, or another compatible run to compare."
+        : "Recorded checkpoint crossings. Select a PB, WR, or another compatible run to compare.";
     }
   }
   const theoretical = $("replay-theoretical-best");

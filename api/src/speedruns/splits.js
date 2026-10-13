@@ -44,6 +44,58 @@ function parseRecordedSplitEvents(raw) {
   return events.map(normalizeEvent).filter(Boolean);
 }
 
+function frameTimeMs(frame) {
+  const value = Number(frame?.t);
+  return Number.isFinite(value) && value >= 0 ? Math.round(value * 1000) : null;
+}
+
+function pointInsideZone(frame, zone) {
+  if (!frame || !zone?.position) return false;
+  const x = Number(frame.x);
+  const y = Number(frame.y);
+  const z = Number(frame.z);
+  const center = zone.position;
+  const centerX = Number(center.x);
+  const centerY = Number(center.y);
+  const centerZ = Number(center.z);
+  const radius = Number(zone.radius);
+  const height = Number(zone.height);
+  if (![x, y, z, centerX, centerY, centerZ, radius, height].every(Number.isFinite)) return false;
+  const horizontalDistance = Math.hypot(x - centerX, y - centerY);
+  return horizontalDistance <= Math.max(1, radius) && Math.abs(z - centerZ) <= Math.max(1, height / 2);
+}
+
+function deriveCheckpointEvents({ frames, zones, startTime = null, finishTime = null } = {}) {
+  if (!Array.isArray(frames) || !frames.length || !Array.isArray(zones?.checkpoints) || !zones.checkpoints.length) return [];
+  const sortedFrames = frames
+    .filter(frame => frameTimeMs(frame) != null)
+    .slice()
+    .sort((a, b) => Number(a.t) - Number(b.t));
+  if (!sortedFrames.length) return [];
+
+  const firstReplayTimeMs = frameTimeMs(sortedFrames[0]);
+  const lowerBoundMs = finiteMs(startTime) ?? firstReplayTimeMs;
+  const upperBoundMs = finiteMs(finishTime);
+  const events = [];
+  let previousTimeMs = lowerBoundMs;
+
+  for (const checkpoint of zones.checkpoints.slice().sort((a, b) => Number(a.checkpointNumber) - Number(b.checkpointNumber))) {
+    const crossing = sortedFrames.find((frame, index) => {
+      const timeMs = frameTimeMs(frame);
+      if (timeMs == null || timeMs < lowerBoundMs || (upperBoundMs != null && timeMs > upperBoundMs) || timeMs < previousTimeMs) return false;
+      if (!pointInsideZone(frame, checkpoint)) return false;
+      const previous = sortedFrames[index - 1];
+      return !previous || !pointInsideZone(previous, checkpoint);
+    });
+    if (!crossing) return [];
+    const absoluteTimeMs = frameTimeMs(crossing);
+    const elapsedMs = Math.max(0, absoluteTimeMs - lowerBoundMs);
+    events.push({ kind: "checkpoint", checkpointNumber: Number(checkpoint.checkpointNumber), elapsedMs });
+    previousTimeMs = absoluteTimeMs;
+  }
+  return events;
+}
+
 function eventKey(event) {
   return event.kind === "checkpoint" ? `checkpoint:${event.checkpointNumber}` : event.kind;
 }
@@ -139,6 +191,7 @@ module.exports = {
   buildSplitAnalysis,
   compareSplitEvents,
   compatibleSplitMetadata,
+  deriveCheckpointEvents,
   parseRecordedSplitEvents,
   sumBestSegments
 };
