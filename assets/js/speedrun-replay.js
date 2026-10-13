@@ -619,6 +619,14 @@ function splitRowsForReplay(replay, splitAnalysis) {
   const finishMs = Number(replay?.timeMs);
   return [
     { key: "start", kind: "start", elapsedMs: 0, segmentMs: null },
+    ...(replay?.zones?.checkpoints || []).map(checkpoint => ({
+      key: `checkpoint:${checkpoint.checkpointNumber}`,
+      kind: "checkpoint",
+      checkpointNumber: checkpoint.checkpointNumber,
+      elapsedMs: null,
+      segmentMs: null,
+      unavailable: true
+    })),
     ...(Number.isFinite(finishMs) ? [{ key: "finish", kind: "finish", elapsedMs: finishMs, segmentMs: finishMs }] : [])
   ];
 }
@@ -627,7 +635,7 @@ function activeSplitKey() {
   const rows = splitRowsForReplay(state.replay, state.splitAnalysis);
   let active = rows[0]?.key || "";
   for (const row of rows) {
-    if (Number(row.elapsedMs) <= state.playbackTime + 0.0005) active = row.key;
+    if (Number.isFinite(Number(row.elapsedMs)) && Number(row.elapsedMs) <= state.playbackTime + 0.0005) active = row.key;
   }
   return active;
 }
@@ -646,6 +654,7 @@ function renderReplayMarkers() {
   const rows = splitRowsForReplay(state.replay, state.splitAnalysis);
   const durationMs = Math.max(1, Number(state.replay?.timeMs) || state.duration * 1000);
   for (const row of rows) {
+    if (!Number.isFinite(Number(row.elapsedMs))) continue;
     const marker = document.createElement("button");
     marker.type = "button";
     marker.className = `replay-scrubber-marker ${row.kind}`;
@@ -692,7 +701,8 @@ function renderSplitAnalysis() {
     const segment = comparisonRow && row.segmentMs != null && comparisonRow.segmentMs != null
       ? formatSignedDelta(row.segmentMs - comparisonRow.segmentMs)
       : formatSignedDelta(null);
-    tr.innerHTML = `<td>${splitEventLabel(row)}</td><td>${formatTime(Number(row.elapsedMs) / 1000)}</td><td>${row.segmentMs == null ? "—" : formatTime(Number(row.segmentMs) / 1000)}</td><td class="${cumulative.className}">${cumulative.text}</td><td class="${segment.className}">${segment.text}</td>`;
+    const elapsedText = Number.isFinite(Number(row.elapsedMs)) ? formatTime(Number(row.elapsedMs) / 1000) : "—";
+    tr.innerHTML = `<td>${splitEventLabel(row)}</td><td>${elapsedText}</td><td>${row.segmentMs == null ? "—" : formatTime(Number(row.segmentMs) / 1000)}</td><td class="${cumulative.className}">${cumulative.text}</td><td class="${segment.className}">${segment.text}</td>`;
     body.appendChild(tr);
   }
   if (precision) precision.textContent = state.splitAnalysis?.available ? "Recorded · ms" : "Start/finish only";
