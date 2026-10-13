@@ -14,6 +14,9 @@ const ELO_DB = process.env.ELO_DB || path.join(DATA_DIR, "elo.db");
 const SUPPORTERS_FILE = process.env.SUPPORTERS_FILE || path.join(DATA_DIR, "supporters.json");
 const QUEUE_FILE = process.env.QUEUE_FILE || path.join(DATA_DIR, "queue.json");
 const KICKED_FILE = process.env.KICKED_FILE || path.join(DATA_DIR, "kicked.json");
+const SPELLING_LISTS_FILE = process.env.SPELLING_LISTS_FILE || path.join(DATA_DIR, "spelling-lists.json");
+const SPELLING_ADMIN_USER = process.env.SPELLING_ADMIN_USER || "";
+const SPELLING_ADMIN_PASSWORD = process.env.SPELLING_ADMIN_PASSWORD || "";
 // TODO(production): TRUST_PROXY must match the real proxy hop topology or client IPs and rate limits can be unreliable.
 const TRUST_PROXY = process.env.TRUST_PROXY === "true" ? 1 : false;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "";
@@ -70,6 +73,9 @@ const config = {
   SUPPORTERS_FILE,
   QUEUE_FILE,
   KICKED_FILE,
+  SPELLING_LISTS_FILE,
+  SPELLING_ADMIN_USER,
+  SPELLING_ADMIN_PASSWORD,
   TRUST_PROXY,
   CORS_ORIGIN,
   API_RATE_LIMIT,

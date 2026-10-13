@@ -17,6 +17,7 @@ const { createPlayerIdentitiesRouter } = require("./playerIdentities");
 const { createSpeedrunComparisonsRouter } = require("./speedrunComparisons");
 const { createShadowEloRouter } = require("./shadowElo");
 const { createCoolestDudeRouter } = require("./coolestDude");
+const { createSpellingRouter } = require("./spelling");
 
 function registerRoutes(app, {
   leaderboardHandler,
@@ -39,6 +40,9 @@ function registerRoutes(app, {
   statsSummaryStmt,
   QUEUE_FILE,
   KICKED_FILE,
+  SPELLING_LISTS_FILE,
+  SPELLING_ADMIN_USER,
+  SPELLING_ADMIN_PASSWORD,
   DATA_DIR,
   compareProfileStmt,
   compareMatchesStmt,
@@ -186,6 +190,7 @@ app.use("/api", createCoolestDudeRouter({
   sendError,
   logRouteError
 }));
+app.use("/api", createSpellingRouter({ fs, file: SPELLING_LISTS_FILE, adminUser: SPELLING_ADMIN_USER, adminPassword: SPELLING_ADMIN_PASSWORD }));
 }
 
 module.exports = { registerRoutes };

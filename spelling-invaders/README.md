@@ -39,3 +39,5 @@ Speech uses the browser's built-in `speechSynthesis`. Voice availability varies 
 This release uses lightweight procedural Canvas effects rather than external artwork or a service worker. The educational flow, persistence, editor, analytics, scoring, and responsive controls are complete; speech voice selection is intentionally left to the browser's default for reliable tablet support.
 
 The Parent Zone is a separate `/spelling/parent/` page intended to sit behind server-side HTTP Basic Auth. Configure the web server to protect that path; do not put a password in the client bundle.
+
+The active weekly list is server-backed through `/api/spelling/active`. The Parent Zone saves through `/api/spelling/admin/list`; configure `SPELLING_ADMIN_USER` and `SPELLING_ADMIN_PASSWORD` in the API's private `.env` and protect the admin API path with the same nginx Basic Auth.
