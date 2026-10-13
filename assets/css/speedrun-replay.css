@@ -502,8 +502,7 @@
 
 .replay-stage.overlays-hidden .replay-topbar,
 .replay-stage.overlays-hidden .replay-stats,
-.replay-stage.overlays-hidden .replay-controls,
-.replay-stage.overlays-hidden .replay-splits-panel {
+.replay-stage.overlays-hidden .replay-controls {
   opacity: 0;
   pointer-events: none;
 }
@@ -518,10 +517,6 @@
 
 .replay-stage.overlays-hidden .replay-controls {
   transform: translateY(10px);
-}
-
-.replay-stage.overlays-hidden .replay-splits-panel {
-  transform: translateX(10px);
 }
 
 .replay-stage.overlays-hidden .replay-compare-legend {
@@ -615,8 +610,8 @@
 .replay-splits-panel {
   position: absolute;
   z-index: 2;
-  top: 330px;
-  right: 18px;
+  top: 166px;
+  left: 18px;
   width: min(520px, calc(100% - 36px));
   max-height: min(46vh, 440px);
   padding: 14px;
@@ -626,7 +621,6 @@
   background: rgba(7, 10, 15, .84);
   box-shadow: 0 18px 50px rgba(0, 0, 0, .28);
   backdrop-filter: blur(14px);
-  transition: opacity .2s ease, transform .2s ease;
 }
 
 .replay-splits-heading {
@@ -944,7 +938,6 @@
 
   .replay-splits-panel {
     top: calc(env(safe-area-inset-top, 0px) + 250px);
-    right: 8px;
     left: 8px;
     width: auto;
     max-height: min(35vh, 300px);
