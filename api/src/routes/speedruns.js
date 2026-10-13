@@ -12,6 +12,10 @@ const {
   recordClassName,
   formatTimeMs
 } = require("../speedruns/domain");
+const {
+  buildSplitAnalysis,
+  parseRecordedSplitEvents
+} = require("../speedruns/splits");
 
 const MAX_MAP_NAME_LENGTH = 64;
 const MAX_STEAM_ID_LENGTH = 35;
@@ -681,6 +685,9 @@ function createSpeedrunsRouter({ logRouteError }) {
   async function replayResultForRun(runId, routeLabel) {
     const metadataRows = await speedrunQuery(`
       SELECT
+        g.*,
+        r.*,
+        r.ruleset,
         g.id AS ghost_id,
         g.run_id,
         g.map,
@@ -761,6 +768,24 @@ function createSpeedrunsRouter({ logRouteError }) {
     const classId = Number(metadata.class_id);
     const projectileTiming = replayTimingWindow(frames, replayTimeMs, zones?.finish);
     const projectileUsage = summarizeProjectileUsage(projectileFrames, projectileTiming);
+    const recordedSplitEvents = parseRecordedSplitEvents(firstValue(metadata, [
+      "split_events",
+      "checkpoint_events",
+      "checkpoint_times",
+      "timing_events",
+      "split_data",
+      "events"
+    ]));
+    const splitAnalysis = buildSplitAnalysis({
+      timeMs: replayTimeMs,
+      events: recordedSplitEvents
+    });
+    const splitMetadata = {
+      map: metadata.map,
+      classId,
+      ruleset: Number(metadata.ruleset),
+      checkpointSequence: (zones?.checkpoints || []).map(checkpoint => Number(checkpoint.checkpointNumber))
+    };
 
     return {
       status: 200,
@@ -768,11 +793,17 @@ function createSpeedrunsRouter({ logRouteError }) {
         runId: Number(metadata.run_id),
         ghostId: Number(ghostId),
         map: metadata.map,
+        ruleset: Number(metadata.ruleset),
         classId,
         className: className(metadata) || CLASS_NAMES[classId] || `Class ${classId}`,
         playerName: metadata.player_name || null,
         steamid: metadata.steamid || null,
         timeMs: replayTimeMs,
+        splitMetadata,
+        splits: {
+          ...splitAnalysis,
+          unavailableReason: splitAnalysis.available ? null : "recorded_checkpoint_events_unavailable"
+        },
         frameInterval: frameInterval == null ? inferFrameInterval(frames) : Number(frameInterval),
         zones,
         frames,

@@ -232,6 +232,7 @@ const state = {
   lastTick: performance.now(),
   frameIndex: 0,
   comparison: null,
+  splitAnalysis: null,
   comparisonCandidatesLoaded: false
 };
 const freeRoamKeys = new Set();
@@ -586,6 +587,135 @@ function formatTime(seconds) {
 function runTime(ms) {
   const value = Number(ms);
   return Number.isFinite(value) ? formatTime(value / 1000) : "-";
+}
+
+function splitEventLabel(event) {
+  if (event.kind === "start") return "Start";
+  if (event.kind === "finish") return "Finish";
+  return `CP ${event.checkpointNumber}`;
+}
+
+function splitMetadataCompatible(a, b) {
+  if (!a || !b) return false;
+  return String(a.map || "") === String(b.map || "")
+    && Number(a.classId) === Number(b.classId)
+    && Number(a.ruleset) === Number(b.ruleset)
+    && JSON.stringify(a.checkpointSequence || []) === JSON.stringify(b.checkpointSequence || []);
+}
+
+function formatSignedDelta(value) {
+  const delta = Number(value);
+  if (!Number.isFinite(delta)) return { text: "—", className: "delta-neutral" };
+  if (delta === 0) return { text: "±0.000", className: "delta-neutral" };
+  const ahead = delta < 0;
+  return {
+    text: `${ahead ? "−" : "+"}${formatTime(Math.abs(delta) / 1000)}`,
+    className: ahead ? "delta-ahead" : "delta-behind"
+  };
+}
+
+function splitRowsForReplay(replay, splitAnalysis) {
+  if (splitAnalysis?.available && Array.isArray(splitAnalysis.events)) return splitAnalysis.events;
+  const finishMs = Number(replay?.timeMs);
+  return [
+    { key: "start", kind: "start", elapsedMs: 0, segmentMs: null },
+    ...(Number.isFinite(finishMs) ? [{ key: "finish", kind: "finish", elapsedMs: finishMs, segmentMs: finishMs }] : [])
+  ];
+}
+
+function activeSplitKey() {
+  const rows = splitRowsForReplay(state.replay, state.splitAnalysis);
+  let active = rows[0]?.key || "";
+  for (const row of rows) {
+    if (Number(row.elapsedMs) <= state.playbackTime + 0.0005) active = row.key;
+  }
+  return active;
+}
+
+function updateSplitActiveState() {
+  const active = activeSplitKey();
+  document.querySelectorAll("#replay-splits-body tr[data-split-key]").forEach(row => {
+    row.classList.toggle("active", row.dataset.splitKey === active);
+  });
+}
+
+function renderReplayMarkers() {
+  const container = $("replay-scrubber-markers");
+  if (!container) return;
+  container.replaceChildren();
+  const rows = splitRowsForReplay(state.replay, state.splitAnalysis);
+  const durationMs = Math.max(1, Number(state.replay?.timeMs) || state.duration * 1000);
+  for (const row of rows) {
+    const marker = document.createElement("button");
+    marker.type = "button";
+    marker.className = `replay-scrubber-marker ${row.kind}`;
+    marker.style.left = `${Math.min(100, Math.max(0, Number(row.elapsedMs) / durationMs * 100))}%`;
+    marker.title = `${splitEventLabel(row)} · ${formatTime(Number(row.elapsedMs) / 1000)}`;
+    marker.setAttribute("aria-label", `Seek to ${marker.title}`);
+    marker.addEventListener("click", event => {
+      event.preventDefault();
+      event.stopPropagation();
+      seekToReplayTime(Number(row.elapsedMs) / 1000);
+    });
+    container.appendChild(marker);
+  }
+}
+
+function seekToReplayTime(time) {
+  state.playbackTime = Math.min(state.duration, Math.max(0, Number(time) || 0));
+  state.frameIndex = 0;
+  if (state.comparison) state.comparison.frameIndex = 0;
+  setOverlaysVisible(true);
+  updatePlayer();
+  renderReplayScene();
+}
+
+function renderSplitAnalysis() {
+  const body = $("replay-splits-body");
+  const status = $("replay-splits-status");
+  const precision = $("replay-splits-precision");
+  if (!body || !state.replay) return;
+  const currentRows = splitRowsForReplay(state.replay, state.splitAnalysis);
+  const comparison = state.comparison;
+  const comparisonAllowed = comparison
+    && splitMetadataCompatible(state.replay.splitMetadata, comparison.replay.splitMetadata)
+    && comparison.splits?.available;
+  const comparisonByKey = comparisonAllowed
+    ? new Map(comparison.splits.events.map(event => [event.key, event]))
+    : new Map();
+  body.replaceChildren();
+  for (const row of currentRows) {
+    const comparisonRow = comparisonByKey.get(row.key);
+    const tr = document.createElement("tr");
+    tr.dataset.splitKey = row.key;
+    const cumulative = comparisonRow ? formatSignedDelta(row.elapsedMs - comparisonRow.elapsedMs) : formatSignedDelta(null);
+    const segment = comparisonRow && row.segmentMs != null && comparisonRow.segmentMs != null
+      ? formatSignedDelta(row.segmentMs - comparisonRow.segmentMs)
+      : formatSignedDelta(null);
+    tr.innerHTML = `<td>${splitEventLabel(row)}</td><td>${formatTime(Number(row.elapsedMs) / 1000)}</td><td>${row.segmentMs == null ? "—" : formatTime(Number(row.segmentMs) / 1000)}</td><td class="${cumulative.className}">${cumulative.text}</td><td class="${segment.className}">${segment.text}</td>`;
+    body.appendChild(tr);
+  }
+  if (precision) precision.textContent = state.splitAnalysis?.available ? "Recorded · ms" : "Start/finish only";
+  if (status) {
+    if (!state.splitAnalysis?.available) {
+      status.textContent = comparison
+        ? "Checkpoint crossings were not recorded for this replay; comparison deltas are unavailable."
+        : "Checkpoint crossings are unavailable for this replay. Start and finish use authoritative timing.";
+    } else if (comparison && !comparisonAllowed) {
+      status.textContent = "Comparison run is not compatible with this checkpoint sequence.";
+    } else if (comparison) {
+      status.textContent = "Negative deltas are ahead. Hover a delta for the segment comparison.";
+    } else {
+      status.textContent = "Recorded checkpoint crossings. Select a PB, WR, or another compatible run to compare.";
+    }
+  }
+  const theoretical = $("replay-theoretical-best");
+  if (theoretical) {
+    theoretical.hidden = false;
+    theoretical.textContent = "Best segments unavailable until compatible historical split events are recorded.";
+  }
+  updateSplitActiveState();
+  renderReplayMarkers();
 }
 
 function apiReplayPath(query) {
@@ -1181,6 +1311,7 @@ function updateComparisonLegend() {
       : `${formatTime(Math.abs(delta) / 1000)} ${direction} primary`;
   }
   $("replay-compare-delta").textContent = deltaText;
+  renderSplitAnalysis();
 }
 
 function clearComparison({ updateUrl = true } = {}) {
@@ -1204,6 +1335,7 @@ function clearComparison({ updateUrl = true } = {}) {
     window.history.replaceState(null, "", url);
   }
   updateComparisonLegend();
+  renderSplitAnalysis();
 }
 
 async function loadComparison(path, { closePanel = true } = {}) {
@@ -1217,11 +1349,15 @@ async function loadComparison(path, { closePanel = true } = {}) {
     const frames = decodeReplayFrames(replay.frames);
     if (frames.length < 2) throw new Error("Comparison replay has too few frames.");
     if (replay.map !== state.replay?.map) throw new Error("Runs must be from the same map.");
+    if (Number(replay.classId) !== Number(state.replay?.classId)) throw new Error("Runs must use the same class.");
+    if (!splitMetadataCompatible(state.replay?.splitMetadata, replay.splitMetadata)) {
+      throw new Error("Runs must use the same ruleset and checkpoint sequence.");
+    }
 
     clearComparison({ updateUrl: false });
     const normalized = normalizeComparisonFrames(frames, replay);
     const duration = Math.max(0, normalized[normalized.length - 1].rt);
-    state.comparison = { replay, normalized, duration, frameIndex: 0 };
+    state.comparison = { replay, normalized, duration, frameIndex: 0, splits: replay.splits || null };
     state.duration = Math.max(state.primaryDuration, duration);
     await setReplayPlayerModel(comparisonPlayer, replay);
 
@@ -1239,6 +1375,7 @@ async function loadComparison(path, { closePanel = true } = {}) {
     url.searchParams.set("compareRunId", String(replay.runId));
     window.history.replaceState(null, "", url);
     updateComparisonLegend();
+    renderSplitAnalysis();
     updatePlayer();
     renderReplayScene();
     if (status) status.textContent = `Comparing ${comparisonLabel(replay)}`;
@@ -1270,29 +1407,50 @@ async function loadComparisonCandidates() {
     const data = await fetchJson(`/api/speedruns/maps/${encodeURIComponent(state.replay.map)}`);
     const candidates = [];
     const seen = new Set();
+    const currentClassId = Number(state.replay.classId);
+    const addCandidate = (path, label, key) => {
+      if (!path || seen.has(key)) return;
+      seen.add(key);
+      candidates.push({ path, label });
+    };
+    const worldRecord = (data.leaderboard || []).find(row => row.hasReplay && Number(row.classId) === currentClassId);
+    if (worldRecord?.steamId) {
+      addCandidate(
+        `/api/speedruns/replay/${encodeURIComponent(state.replay.map)}/${encodeURIComponent(worldRecord.classId)}/${encodeURIComponent(worldRecord.steamId)}`,
+        `World record · ${worldRecord.playerName || worldRecord.steamId} — ${worldRecord.bestTimeDisplay || runTime(worldRecord.bestTimeMs)}`,
+        `wr:${worldRecord.steamId}:${worldRecord.classId}`
+      );
+    }
+    const personalBest = (data.leaderboard || []).find(row => row.hasReplay
+      && Number(row.classId) === currentClassId
+      && row.steamId === state.replay.steamid
+      && Number(row.bestTimeMs) !== Number(state.replay.timeMs));
+    if (personalBest?.steamId) {
+      addCandidate(
+        `/api/speedruns/replay/${encodeURIComponent(state.replay.map)}/${encodeURIComponent(personalBest.classId)}/${encodeURIComponent(personalBest.steamId)}`,
+        `Personal best · ${personalBest.playerName || personalBest.steamId} — ${personalBest.bestTimeDisplay || runTime(personalBest.bestTimeMs)}`,
+        `pb:${personalBest.steamId}:${personalBest.classId}`
+      );
+    }
     for (const row of data.leaderboard || []) {
       if (!row.hasReplay || !row.steamId || row.classId == null) continue;
       const isCurrentRun = row.steamId === state.replay.steamid
         && Number(row.classId) === Number(state.replay.classId)
         && Number(row.bestTimeMs) === Number(state.replay.timeMs);
       if (isCurrentRun) continue;
-      const key = `${row.steamId}:${row.classId}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      candidates.push({
-        path: `/api/speedruns/replay/${encodeURIComponent(state.replay.map)}/${encodeURIComponent(row.classId)}/${encodeURIComponent(row.steamId)}`,
-        label: `#${row.rank || "-"} ${row.playerName || row.steamId} — ${row.bestTimeDisplay || runTime(row.bestTimeMs)} (${row.className || `Class ${row.classId}`})`
-      });
+      addCandidate(
+        `/api/speedruns/replay/${encodeURIComponent(state.replay.map)}/${encodeURIComponent(row.classId)}/${encodeURIComponent(row.steamId)}`,
+        `#${row.rank || "-"} ${row.playerName || row.steamId} — ${row.bestTimeDisplay || runTime(row.bestTimeMs)} (${row.className || `Class ${row.classId}`})`,
+        `${row.steamId}:${row.classId}`
+      );
     }
     for (const row of data.recentRuns || []) {
       if (!row.hasReplay || !row.runId || Number(row.runId) === Number(state.replay.runId)) continue;
-      const key = `run:${row.runId}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      candidates.push({
-        path: `/api/speedruns/replay/run/${encodeURIComponent(row.runId)}`,
-        label: `Recent: ${row.playerName || row.steamId || "Unknown"} — ${row.timeDisplay || runTime(row.timeMs)} (${row.className || `Class ${row.classId}`})`
-      });
+      addCandidate(
+        `/api/speedruns/replay/run/${encodeURIComponent(row.runId)}`,
+        `Recent: ${row.playerName || row.steamId || "Unknown"} — ${row.timeDisplay || runTime(row.timeMs)} (${row.className || `Class ${row.classId}`})`,
+        `run:${row.runId}`
+      );
     }
 
     select.replaceChildren(new Option(candidates.length ? "Choose a run..." : "No other replay-enabled runs", ""));
@@ -2432,6 +2590,9 @@ function updatePlayer() {
   if (slider && document.activeElement !== slider) slider.value = String(Math.round(state.playbackTime * 1000));
   const clock = $("replay-clock");
   if (clock) clock.textContent = formatTime(state.playbackTime);
+  const runTimer = $("replay-run-timer");
+  if (runTimer) runTimer.textContent = formatTime(Math.min(state.playbackTime, state.primaryDuration));
+  updateSplitActiveState();
 }
 
 function resize() {
@@ -2660,14 +2821,7 @@ function wireControls() {
   });
 
   $("replay-slider")?.addEventListener("input", event => {
-    state.playbackTime = Math.min(state.duration, Math.max(0, Number(event.target.value) / 1000));
-    state.frameIndex = 0;
-    if (state.comparison) state.comparison.frameIndex = 0;
-    setOverlaysVisible(true);
-    if (!state.playing) {
-      updatePlayer();
-      renderReplayScene();
-    }
+    seekToReplayTime(Number(event.target.value) / 1000);
   });
 
   canvas.addEventListener("click", event => {
@@ -2898,6 +3052,11 @@ async function init() {
     state.duration = state.primaryDuration;
     state.playbackTime = 0;
     state.frameIndex = 0;
+    state.splitAnalysis = replay.splits || {
+      available: false,
+      events: [],
+      finishMs: Number(replay.timeMs) || null
+    };
     state.projectileFrames = Array.isArray(replay.projectileEvents)
       ? replay.projectileEvents
       : Array.isArray(replay.projectileFrames) ? replay.projectileFrames : [];
@@ -2973,6 +3132,7 @@ async function init() {
     await setupProjectileVisuals();
     loadMapModel(replay.map);
     updateComparisonLegend();
+    renderSplitAnalysis();
 
     const compareRunId = firstParam(params(), ["compareRunId", "compare_run_id"]);
     if (compareRunId && /^\d+$/.test(compareRunId) && Number(compareRunId) !== Number(replay.runId)) {

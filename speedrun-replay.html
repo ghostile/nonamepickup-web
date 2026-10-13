@@ -131,6 +131,26 @@
         <span id="replay-compare-delta" class="replay-compare-delta"></span>
       </div>
 
+      <section id="replay-splits-panel" class="replay-splits-panel" aria-labelledby="replay-splits-heading">
+        <div class="replay-splits-heading">
+          <div>
+            <span class="replay-splits-kicker">TIMING ANALYSIS</span>
+            <h2 id="replay-splits-heading">Splits</h2>
+          </div>
+          <span id="replay-splits-precision" class="replay-splits-precision">Recorded timing</span>
+        </div>
+        <div id="replay-splits-status" class="replay-splits-status" role="status"></div>
+        <div class="replay-splits-table-wrap">
+          <table class="replay-splits-table">
+            <thead>
+              <tr><th scope="col">Split</th><th scope="col">Elapsed</th><th scope="col">Segment</th><th scope="col">vs comparison</th><th scope="col">segment Δ</th></tr>
+            </thead>
+            <tbody id="replay-splits-body"></tbody>
+          </table>
+        </div>
+        <div id="replay-theoretical-best" class="replay-theoretical-best" hidden></div>
+      </section>
+
       <div id="replay-free-roam-help" class="replay-free-roam-help" role="status" hidden>
         <strong>FREE ROAM</strong><span>Click the replay to capture the mouse · WASD move · Q/E down/up</span>
       </div>
@@ -151,6 +171,7 @@
       </div>
 
       <section class="replay-stats" aria-label="Replay frame statistics">
+        <div class="replay-run-clock-card"><span>Run time</span><strong id="replay-run-timer">0:00.000</strong></div>
         <div><span>Speed</span><strong id="replay-stat-speed">-</strong></div>
         <div><span>Position</span><strong id="replay-stat-position">-</strong></div>
         <div><span>Look</span><strong id="replay-stat-look">-</strong></div>
@@ -176,7 +197,10 @@
         </div>
         <label class="replay-scrubber">
           <span id="replay-clock">0:00.000</span>
-          <input id="replay-slider" type="range" min="0" max="1000" step="1" value="0">
+          <span class="replay-scrubber-track">
+            <input id="replay-slider" type="range" min="0" max="1000" step="1" value="0">
+            <span id="replay-scrubber-markers" class="replay-scrubber-markers"></span>
+          </span>
           <span id="replay-duration">0:00.000</span>
         </label>
       </section>
