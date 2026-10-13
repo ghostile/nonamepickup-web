@@ -20,6 +20,8 @@ npm run dev
 
 Open the local Vite URL. For a production build, use `npm run build` and `npm run preview`.
 
+The production build is configured for the hosted path `/spelling/` and writes the deployable static files to the repository's top-level `spelling/` directory.
+
 ## Testing
 
 `npm test` runs the pure spelling/domain tests. `npm run build` performs TypeScript checking and the production bundle build. Browser interaction and speech output still need human verification because speech synthesis and touch behavior depend on the browser/device.
@@ -35,3 +37,5 @@ Speech uses the browser's built-in `speechSynthesis`. Voice availability varies 
 ## Known limitations
 
 This release uses lightweight procedural Canvas effects rather than external artwork or a service worker. The educational flow, persistence, editor, analytics, scoring, and responsive controls are complete; speech voice selection is intentionally left to the browser's default for reliable tablet support.
+
+The Parent Zone is a separate `/spelling/parent/` page intended to sit behind server-side HTTP Basic Auth. Configure the web server to protect that path; do not put a password in the client bundle.
