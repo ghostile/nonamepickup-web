@@ -501,7 +501,6 @@
 }
 
 .replay-stage.overlays-hidden .replay-topbar,
-.replay-stage.overlays-hidden .replay-stats,
 .replay-stage.overlays-hidden .replay-controls {
   opacity: 0;
   pointer-events: none;
@@ -509,10 +508,6 @@
 
 .replay-stage.overlays-hidden .replay-topbar {
   transform: translateY(-10px);
-}
-
-.replay-stage.overlays-hidden .replay-stats {
-  transform: translateX(10px);
 }
 
 .replay-stage.overlays-hidden .replay-controls {
