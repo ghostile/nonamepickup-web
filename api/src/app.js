@@ -338,6 +338,8 @@ function createApp({
     QUEUE_FILE,
     KICKED_FILE,
     SPELLING_LISTS_FILE,
+    SPELLING_ADMIN_USER,
+    SPELLING_ADMIN_PASSWORD,
     DATA_DIR,
     compareProfileStmt,
     compareMatchesStmt,
