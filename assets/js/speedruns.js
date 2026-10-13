@@ -291,13 +291,13 @@
 
   function comparisonBadge(comparison) {
     if (comparison?.status === "internal_faster") {
-      return `<span class="speedrun-comparison-badge global">🌎 Global Record</span>`;
+      return `<span class="speedrun-comparison-badge global">Global Record</span>`;
     }
     if (comparison?.status === "tied") {
       return `<span class="speedrun-comparison-badge tied">Tied Global Record</span>`;
     }
     if (comparison?.internal) {
-      return `<span class="speedrun-comparison-badge local">🏆 Local Record</span>`;
+      return `<span class="speedrun-comparison-badge local">Local Record</span>`;
     }
     return "";
   }
@@ -1068,9 +1068,10 @@
     const flattened = classes.flatMap(classRow => classRow.points.map(point => ({ ...point, classRow })))
       .sort((a, b) => b.x - a.x);
     setHtml("sr-map-progression", flattened.map(point => listRow({
-      title: point.player_name || "Unknown",
+      titleHtml: runnerLink(point),
       subtitle: `${point.classRow.className} · ${compact(point.attempts_to_record)} attempts to #1 · ${formatDateTime(point.created_at)} · ${formatImprovement(point.improvement_ms)}`,
-      value: progressionPointTime(point)
+      value: progressionPointTime(point),
+      actionHtml: replayAction(point)
     })).join("") || empty("No world record progression yet."));
 
     redraw();
@@ -1079,6 +1080,112 @@
     }
     window.__speedrunProgressionResize = () => redraw();
     window.addEventListener("resize", window.__speedrunProgressionResize);
+  }
+
+  function setupMapTabs() {
+    const tabs = [...document.querySelectorAll("[data-speedrun-tab]")];
+    if (!tabs.length) return;
+
+    const activate = tab => {
+      tabs.forEach(item => {
+        const selected = item === tab;
+        item.setAttribute("aria-selected", String(selected));
+        item.tabIndex = selected ? 0 : -1;
+        const panel = $(item.getAttribute("aria-controls"));
+        if (panel) panel.hidden = !selected;
+      });
+      if (tab.dataset.speedrunTab === "progression") {
+        requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+      }
+    };
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener("click", () => activate(tab));
+      tab.addEventListener("keydown", event => {
+        let nextIndex = null;
+        if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+        if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
+        if (event.key === "Home") nextIndex = 0;
+        if (event.key === "End") nextIndex = tabs.length - 1;
+        if (nextIndex == null) return;
+        event.preventDefault();
+        activate(tabs[nextIndex]);
+        tabs[nextIndex].focus();
+      });
+    });
+  }
+
+  function replayCell(row, label = "Watch") {
+    const link = replayLink(row, label);
+    return link || `<span class="speedrun-map-v2-unavailable">Unavailable</span>`;
+  }
+
+  function renderMapRuns(rows, selectedClass = "") {
+    const filtered = selectedClass
+      ? (rows || []).filter(row => classValue(row) === selectedClass)
+      : (rows || []);
+    setHtml("sr-map-recent", filtered.map(row => `
+      <tr>
+        <td class="speedrun-time">${escapeHtml(time(row))}</td>
+        <td>${runnerLink(row)}</td>
+        <td>${classBadge(row)}</td>
+        <td class="speedrun-map-v2-date">${escapeHtml(formatDateTime(timestampValue(row, "createdAt", "created_at")))}</td>
+        <td class="speedrun-replay-cell">${replayCell(row)}</td>
+      </tr>
+    `).join("") || `<tr><td colspan="5">${empty(selectedClass ? "No recent runs for this class." : "No recent runs for this map.")}</td></tr>`);
+  }
+
+  function setupMapArtwork(mapName, displayName) {
+    const hero = $("sr-map-hero-image");
+    const preview = $("sr-map-preview-image");
+    const previewCard = $("sr-map-preview-card");
+    const shell = document.querySelector(".speedrun-map-v2-shell");
+    const imageUrl = mapPreviewUrl(mapName);
+    let failed = false;
+
+    const fail = () => {
+      if (failed) return;
+      failed = true;
+      shell?.classList.add("has-no-map-art");
+      if (hero) hero.hidden = true;
+      if (previewCard) previewCard.hidden = true;
+    };
+
+    [hero, preview].forEach(image => {
+      if (!image) return;
+      image.alt = `${displayName || mapName} map preview`;
+      image.addEventListener("error", fail, { once: true });
+      image.src = imageUrl;
+    });
+  }
+
+  function renderWorldRecordSpotlight(data) {
+    const summary = data.summary || {};
+    const record = (data.leaderboard || [])[0];
+    const holder = summary.worldRecordPlayer || summary.worldRecordSteamId;
+    const holderRow = {
+      playerName: summary.worldRecordPlayer,
+      steamId: summary.worldRecordSteamId
+    };
+    const holderMarkup = holder ? runnerLink(holderRow) : "No record";
+    const recordTime = time(summary, "worldRecordTime");
+
+    setHtml("sr-map-wr-holder", holderMarkup);
+    setText("sr-map-sidebar-wr", recordTime);
+    setHtml("sr-map-sidebar-holder", holder ? holderMarkup : "No record yet");
+    setText("sr-map-sidebar-class", summary.worldRecordClassName || (summary.worldRecordClassId == null ? "-" : `Class ${summary.worldRecordClassId}`));
+
+    const replayTargets = [$("sr-map-hero-replay"), $("sr-map-sidebar-replay")];
+    replayTargets.forEach(link => {
+      if (!link) return;
+      if (record && hasReplay(record)) {
+        link.href = replayUrl(record);
+        link.hidden = false;
+      } else {
+        link.hidden = true;
+        link.removeAttribute("href");
+      }
+    });
   }
 
   function renderMaps(rows) {
@@ -1377,15 +1484,28 @@
       }
       document.title = `NoName TFC | ${data.displayName || data.map} Speedrun`;
       setText("sr-map-title", data.displayName || data.map);
-      setText("sr-map-subtitle", `${data.map} · ${data.category || "other"} · ${data.enabled ? "enabled" : "disabled"}`);
+      setText("sr-map-subtitle", [
+        data.category || "other",
+        data.difficulty == null ? null : `Difficulty ${data.difficulty}`,
+        data.enabled ? "Enabled" : "Disabled"
+      ].filter(Boolean).join(" · "));
       setText("sr-map-wr", time(data.summary, "worldRecordTime"));
       setText("sr-map-attempts", compact(data.summary?.totalAttempts));
       setText("sr-map-runs", compact(data.summary?.totalRuns));
       setText("sr-map-runners", compact(data.summary?.totalRunners));
       setText("sr-map-records", compact(data.summary?.totalRecords));
       setText("sr-map-difficulty", data.difficulty == null ? "-" : `D${data.difficulty}`);
+      setText("sr-map-last-run", data.summary?.lastRunAt ? dateOnly(data.summary.lastRunAt) : "-");
+      setText("sr-map-info-name", data.displayName || data.map);
+      setText("sr-map-info-category", data.category || "other");
+      setText("sr-map-info-status", data.enabled ? "Enabled" : "Disabled");
+      setText("sr-map-info-ruleset", data.ruleset == null ? "Current" : `Ruleset ${data.ruleset}`);
+      renderWorldRecordSpotlight(data);
+      setupMapArtwork(data.map, data.displayName || data.map);
 
       const classFilter = $("sr-map-class-filter");
+      const comparisonClassFilter = $("sr-map-comparison-class-filter");
+      const runsClassFilter = $("sr-map-runs-class-filter");
       const attemptsToNumberOne = new Map();
       for (const point of progressionData.personal_bests || []) {
         const key = `${point.class_id}:${point.time_ms}:${point.steamid || ""}`;
@@ -1401,11 +1521,14 @@
         .filter(([value]) => value)
         .sort((a, b) => a[1].localeCompare(b[1]));
 
-      if (classFilter) {
-        classFilter.innerHTML = `<option value="">All Classes</option>${classOptions.map(([value, label]) =>
-          `<option value="${escapeAttr(value)}">${escapeHtml(label)}</option>`
-        ).join("")}`;
-        classFilter.value = defaultGlobalComparisonClass(comparisons);
+      const classOptionsMarkup = classOptions.map(([value, label]) =>
+        `<option value="${escapeAttr(value)}">${escapeHtml(label)}</option>`
+      ).join("");
+      if (classFilter) classFilter.innerHTML = `<option value="">All classes</option>${classOptionsMarkup}`;
+      if (runsClassFilter) runsClassFilter.innerHTML = `<option value="">All classes</option>${classOptionsMarkup}`;
+      if (comparisonClassFilter) {
+        comparisonClassFilter.innerHTML = `<option value="">Select a class</option>${classOptionsMarkup}`;
+        comparisonClassFilter.value = defaultGlobalComparisonClass(comparisons);
       }
 
       const renderLeaderboard = () => {
@@ -1418,35 +1541,34 @@
           const attemptsToFirst = attemptsToNumberOne.get(`${row.classId}:${row.bestTimeMs}:${row.steamId || ""}`);
           return `
           <tr>
-          <td>#${compact(index + 1)}</td>
-          <td>${runnerLink(row)}</td>
-          <td>${escapeHtml(classText(row))}</td>
+          <td><span class="speedrun-map-v2-rank${index === 0 ? " is-first" : ""}">#${compact(index + 1)}</span></td>
           <td class="speedrun-time">${escapeHtml(time(row, "bestTime"))}</td>
+          <td>${runnerLink(row)}</td>
+          <td>${classBadge(row)}</td>
           <td>${compact(row.attempts)}</td>
           <td class="speedrun-concs-cell" data-label="Concs">${concLimitCell(row)}</td>
           <td>${attemptsToFirst == null ? "-" : compact(attemptsToFirst)}</td>
-          <td class="speedrun-replay-cell">
-            ${replayAction(row)}
-          </td>
           <td class="speedrun-set-cell">${escapeHtml(formatDateTime(achievedTimestamp(row)))}</td>
+          <td class="speedrun-replay-cell">${replayCell(row)}</td>
         </tr>
         `;
         }).join("") || `<tr><td colspan="9">${empty(selectedClass ? "No records for this class yet." : "No records yet.")}</td></tr>`);
+      };
 
+      const renderComparison = () => {
         if (comparisonResult.status === "fulfilled") {
-          renderGlobalComparison("sr-map-comparisons", comparisons, selectedClass);
+          renderGlobalComparison("sr-map-comparisons", comparisons, comparisonClassFilter?.value || "");
         } else {
-          setHtml(
-            "sr-map-comparisons",
-            `<div class="speedrun-comparison-message unavailable">Global comparisons are temporarily unavailable.</div>`
-          );
+          setHtml("sr-map-comparisons", `<div class="speedrun-comparison-message unavailable">Global comparisons are temporarily unavailable.</div>`);
         }
       };
 
       classFilter?.addEventListener("change", renderLeaderboard);
+      runsClassFilter?.addEventListener("change", () => renderMapRuns(data.recentRuns, runsClassFilter.value));
+      comparisonClassFilter?.addEventListener("change", renderComparison);
       renderLeaderboard();
-
-      renderRuns("sr-map-recent", data.recentRuns, "No recent runs for this map.");
+      renderMapRuns(data.recentRuns);
+      renderComparison();
       if (progressionResult.status === "fulfilled") {
         renderProgression(progressionData);
       } else {
@@ -1669,7 +1791,10 @@
     if (loadSupporters) await loadSupporters();
     const view = document.body?.dataset?.speedrunsView;
     if (view === "home") loadHome();
-    else if (view === "map") loadMap();
+    else if (view === "map") {
+      setupMapTabs();
+      loadMap();
+    }
     else if (view === "player") loadPlayer();
     else if (view === "maps") loadMapCatalog();
   });

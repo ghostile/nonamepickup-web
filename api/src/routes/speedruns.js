@@ -272,10 +272,17 @@ function createSpeedrunsRouter({ logRouteError }) {
     const timeMs = row.time_ms == null ? null : Number(row.time_ms);
     const createdAt = iso(row.created_at);
     return {
+      id: row.id == null ? null : Number(row.id),
+      runId: row.id == null ? null : Number(row.id),
+      run_id: row.id == null ? null : Number(row.id),
       time_ms: timeMs,
       player_name: row.player_name || null,
       steamid: row.steamid || null,
+      discordId: row.discord_id || null,
+      discord_id: row.discord_id || null,
       created_at: createdAt,
+      hasReplay: Number(row.has_replay || 0) > 0,
+      has_replay: Number(row.has_replay || 0) > 0,
       improvement_ms: improvementMs == null ? null : Number(improvementMs),
       attempts_to_record: attemptsToRecord == null ? null : Number(attemptsToRecord),
       attemptsToRecord: attemptsToRecord == null ? null : Number(attemptsToRecord)
@@ -1113,13 +1120,21 @@ function createSpeedrunsRouter({ logRouteError }) {
       SELECT
         r.id,
         r.steamid,
+        l.discord_id,
         r.player_name,
         r.map,
         r.class_id,
         r.class_name,
         r.time_ms,
-        r.created_at
+        r.created_at,
+        EXISTS (
+          SELECT 1
+          FROM speedrun_ghosts g
+          WHERE g.run_id = r.id AND g.is_complete = 1
+          LIMIT 1
+        ) AS has_replay
       FROM speedrun_runs r
+      LEFT JOIN speedrun_player_links l ON l.steamid = r.steamid
       WHERE r.map = ?
         AND r.ruleset = ${CURRENT_RULESET}
         AND r.class_id IS NOT NULL
@@ -1398,6 +1413,7 @@ function createSpeedrunsRouter({ logRouteError }) {
       category: mapRow.category || "other",
       difficulty: mapRow.difficulty == null ? null : Number(mapRow.difficulty),
       enabled: Number(mapRow.enabled || 0) === 1,
+      ruleset: CURRENT_RULESET,
       zones: {
         start: { x: mapRow.start_x, y: mapRow.start_y, z: mapRow.start_z },
         finish: { x: mapRow.finish_x, y: mapRow.finish_y, z: mapRow.finish_z }
