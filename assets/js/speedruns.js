@@ -97,6 +97,15 @@
     return number.format(Number(value || 0));
   }
 
+  function concLimitCell(row) {
+    const rawValue = row?.concLimit ?? row?.conc_limit;
+    const parsed = rawValue == null || rawValue === "" ? null : Number(rawValue);
+    if (!Number.isInteger(parsed) || parsed < 0 || parsed > 4) {
+      return `<span class="speedrun-not-recorded" title="Not recorded"><span aria-hidden="true">—</span><span class="sr-only">Not recorded</span></span>`;
+    }
+    return escapeHtml(parsed);
+  }
+
   function time(row, key = "time") {
     const display = row?.timeDisplay || row?.bestTimeDisplay || row?.worldRecordDisplay;
     if (display) return display;
@@ -1414,6 +1423,7 @@
           <td>${escapeHtml(classText(row))}</td>
           <td class="speedrun-time">${escapeHtml(time(row, "bestTime"))}</td>
           <td>${compact(row.attempts)}</td>
+          <td class="speedrun-concs-cell" data-label="Concs">${concLimitCell(row)}</td>
           <td>${attemptsToFirst == null ? "-" : compact(attemptsToFirst)}</td>
           <td class="speedrun-replay-cell">
             ${replayAction(row)}

@@ -1205,7 +1205,7 @@
 }
 
 .speedrun-map-detail-cards .speedrun-table-wrap {
-  overflow-x: hidden;
+  overflow-x: auto;
 }
 
 .speedrun-section > .speedrun-map-board::-webkit-scrollbar,
@@ -1415,7 +1415,7 @@
 }
 
 .speedrun-map-detail-cards .speedrun-table {
-  min-width: 760px;
+  min-width: 840px;
   table-layout: fixed;
   background: rgba(7, 15, 28, .74);
 }
@@ -1446,33 +1446,38 @@
 }
 
 .speedrun-map-detail-cards .speedrun-table th:nth-child(1),
-.speedrun-map-detail-cards .speedrun-table td:nth-child(1) { width: 8%; }
+.speedrun-map-detail-cards .speedrun-table td:nth-child(1) { width: 7%; }
 
 .speedrun-map-detail-cards .speedrun-table th:nth-child(2),
 .speedrun-map-detail-cards .speedrun-table td:nth-child(2) { width: 17%; }
 
 .speedrun-map-detail-cards .speedrun-table th:nth-child(3),
-.speedrun-map-detail-cards .speedrun-table td:nth-child(3) { width: 11%; }
+.speedrun-map-detail-cards .speedrun-table td:nth-child(3) { width: 10%; }
 
 .speedrun-map-detail-cards .speedrun-table th:nth-child(4),
-.speedrun-map-detail-cards .speedrun-table td:nth-child(4) { width: 12%; }
+.speedrun-map-detail-cards .speedrun-table td:nth-child(4) { width: 11%; }
 
 .speedrun-map-detail-cards .speedrun-table th:nth-child(5),
-.speedrun-map-detail-cards .speedrun-table td:nth-child(5) { width: 10%; }
+.speedrun-map-detail-cards .speedrun-table td:nth-child(5) { width: 9%; }
 
 .speedrun-map-detail-cards .speedrun-table th:nth-child(6),
-.speedrun-map-detail-cards .speedrun-table td:nth-child(6) { width: 9%; }
+.speedrun-map-detail-cards .speedrun-table td:nth-child(6) { width: 8%; }
 
 .speedrun-map-detail-cards .speedrun-table th:nth-child(7),
 .speedrun-map-detail-cards .speedrun-table td:nth-child(7) {
-  width: 14%;
-  white-space: normal;
-  line-height: 1.25;
+  width: 8%;
 }
 
 .speedrun-map-detail-cards .speedrun-table th:nth-child(8),
 .speedrun-map-detail-cards .speedrun-table td:nth-child(8) {
-  width: 19%;
+  width: 13%;
+  white-space: normal;
+  line-height: 1.25;
+}
+
+.speedrun-map-detail-cards .speedrun-table th:nth-child(9),
+.speedrun-map-detail-cards .speedrun-table td:nth-child(9) {
+  width: 17%;
   white-space: normal;
   line-height: 1.25;
   text-align: right;
@@ -1482,14 +1487,105 @@
 .speedrun-map-detail-cards .speedrun-table td:nth-child(4),
 .speedrun-map-detail-cards .speedrun-table th:nth-child(5),
 .speedrun-map-detail-cards .speedrun-table td:nth-child(5),
-.speedrun-map-detail-cards .speedrun-table th:nth-child(6),
-.speedrun-map-detail-cards .speedrun-table td:nth-child(6) {
+.speedrun-map-detail-cards .speedrun-table th:nth-child(7),
+.speedrun-map-detail-cards .speedrun-table td:nth-child(7) {
   text-align: right;
 }
 
-.speedrun-map-detail-cards .speedrun-table th:nth-child(7),
-.speedrun-map-detail-cards .speedrun-table td:nth-child(7) {
+.speedrun-map-detail-cards .speedrun-table th:nth-child(6),
+.speedrun-map-detail-cards .speedrun-table td:nth-child(6),
+.speedrun-map-detail-cards .speedrun-table th:nth-child(8),
+.speedrun-map-detail-cards .speedrun-table td:nth-child(8) {
   text-align: center;
+}
+
+.speedrun-header-help {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.speedrun-info-button {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #7dd3fc;
+  cursor: help;
+}
+
+.speedrun-info-button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.5;
+}
+
+.speedrun-info-button:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+.speedrun-header-tooltip {
+  position: absolute;
+  z-index: 8;
+  top: calc(100% + 9px);
+  right: 0;
+  width: min(300px, calc(100vw - 56px));
+  padding: 10px 12px;
+  border: 1px solid rgba(125, 211, 252, .28);
+  border-radius: 8px;
+  background: #07111f;
+  box-shadow: 0 8px 10px rgba(0, 0, 0, .42);
+  color: #dbeafe;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.45;
+  text-align: left;
+  text-transform: none;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-3px);
+  visibility: hidden;
+  transition: opacity .15s ease, transform .15s ease, visibility .15s ease;
+}
+
+.speedrun-header-tooltip code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, .12);
+  color: #bae6fd;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: .95em;
+  text-transform: none;
+}
+
+.speedrun-header-help:hover .speedrun-header-tooltip,
+.speedrun-info-button:focus-visible + .speedrun-header-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+}
+
+.speedrun-concs-cell {
+  color: #e0f2fe !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-weight: 950 !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.speedrun-not-recorded {
+  color: #94a3b8;
 }
 
 .speedrun-map-detail-cards .speedrun-set-cell {

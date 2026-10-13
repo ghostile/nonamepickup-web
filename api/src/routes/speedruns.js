@@ -41,6 +41,16 @@ function eligibleRecordSql(alias = "") {
   return `${alias}best_time_ms >= ${MIN_VALID_RUN_TIME_MS}`;
 }
 
+function concLimitFields(row) {
+  const rawValue = row?.conc_limit ?? row?.concLimit;
+  const parsed = rawValue == null || rawValue === "" ? null : Number(rawValue);
+  const concLimit = Number.isInteger(parsed) && parsed >= 0 && parsed <= 4 ? parsed : null;
+  return {
+    concLimit,
+    conc_limit: concLimit
+  };
+}
+
 function createSpeedrunsRouter({ logRouteError }) {
   const router = express.Router();
   let speedrunRunColumnsPromise = null;
@@ -305,6 +315,7 @@ function createSpeedrunsRouter({ logRouteError }) {
       wr_gap_ms: wrGapMs,
       improvementMs: row.improvement_ms == null ? null : Number(row.improvement_ms),
       improvement_ms: row.improvement_ms == null ? null : Number(row.improvement_ms),
+      ...concLimitFields(row),
       achievedAt,
       achieved_at: achievedAt,
       hasReplay: Number(row.has_replay || 0) > 0,
@@ -1250,6 +1261,20 @@ function createSpeedrunsRouter({ logRouteError }) {
           r.best_time_ms,
           r.pb_created_at,
           r.updated_at,
+          (
+            SELECT CASE
+              WHEN COUNT(*) = 1 THEN MAX(matching_run.conc_limit)
+              ELSE NULL
+            END
+            FROM speedrun_runs matching_run
+            WHERE matching_run.ruleset = ${CURRENT_RULESET}
+              AND matching_run.map = r.map
+              AND matching_run.class_id <=> r.class_id
+              AND matching_run.steamid <=> r.steamid
+              AND matching_run.time_ms = r.best_time_ms
+              AND r.pb_created_at IS NOT NULL
+              AND matching_run.created_at = r.pb_created_at
+          ) AS conc_limit,
           COALESCE(attempt_stats.attempts, 0) AS attempts,
           EXISTS (
             SELECT 1
@@ -1931,4 +1956,4 @@ function createSpeedrunsRouter({ logRouteError }) {
   return router;
 }
 
-module.exports = { createSpeedrunsRouter };
+module.exports = { concLimitFields, createSpeedrunsRouter };

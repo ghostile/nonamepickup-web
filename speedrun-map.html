@@ -16,9 +16,9 @@
   <link rel="shortcut icon" href="/assets/images/favicon.ico">
   <link rel="stylesheet" href="assets/css/app.css?v=20261011universalscale1">
   <link rel="stylesheet" href="assets/css/style.css?v=20260618i">
-  <link rel="stylesheet" href="assets/css/speedruns.css?v=20260913tableclarity1">
+  <link rel="stylesheet" href="assets/css/speedruns.css?v=20261013conclimit1">
   <script src="assets/js/main.js?v=20261004nav1" defer></script>
-  <script src="assets/js/speedruns.js?v=20260910attempted-completed1" defer></script>
+  <script src="assets/js/speedruns.js?v=20261013conclimit1" defer></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Orbitron:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 
@@ -121,7 +121,30 @@
           </div>
           <div class="speedrun-table-wrap leaderboard-table-wrap">
             <table class="speedrun-table">
-              <thead><tr><th>Rank</th><th>Runner</th><th>Class</th><th>Time</th><th>Attempts</th><th>To #1</th><th class="speedrun-replay-heading">Replay</th><th>Set</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Runner</th>
+                  <th>Class</th>
+                  <th>Time</th>
+                  <th>Attempts</th>
+                  <th class="speedrun-concs-heading">
+                    <span class="speedrun-header-help">
+                      <span>Concs</span>
+                      <button class="speedrun-info-button" type="button" aria-label="About concussion grenade limits" aria-describedby="sr-concs-help">
+                        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                          <circle cx="8" cy="8" r="6.25"></circle>
+                          <path d="M8 7.1v4M8 4.65h.01"></path>
+                        </svg>
+                      </button>
+                      <span id="sr-concs-help" class="speedrun-header-tooltip" role="tooltip">The number of concussion grenades allowed for this run. Set your default in-game with <code>/conc 0-4</code>, then use <code>/rs</code> to apply it.</span>
+                    </span>
+                  </th>
+                  <th>To #1</th>
+                  <th class="speedrun-replay-heading">Replay</th>
+                  <th>Set</th>
+                </tr>
+              </thead>
               <tbody id="sr-map-leaderboard"></tbody>
             </table>
           </div>
