@@ -1170,8 +1170,8 @@
 
   .replay-input-hud { display: flex; flex-direction: column; }
   .replay-speedometer { order: 1; }
-  .replay-keyboard { order: 2; }
-  .replay-timing-mini { order: 3; display: block; margin-top: 7px; padding-top: 7px; }
+  .replay-timing-mini { order: 2; display: block; margin-top: 7px; padding-top: 7px; }
+  .replay-keyboard { order: 3; }
   .replay-input-actions { order: 4; }
   .replay-timing-mini-heading,
   .replay-mini-splits-table { display: none; }
