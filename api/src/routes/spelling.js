@@ -2,6 +2,7 @@
 
 const express = require("express");
 const path = require("path");
+const { createSpellingScoreStore } = require("../spellingScores");
 
 const SAMPLE_WORDS = [
   ["adventure", "Our family went on an exciting adventure through the mountains."],
@@ -52,9 +53,43 @@ function validList(list) {
   return list && typeof list.name === "string" && Array.isArray(list.words) && list.words.length > 0 && list.words.length <= 100 && list.words.every(word => word && typeof word.text === "string" && word.text.trim().length > 0 && word.text.length <= 80);
 }
 
-function createSpellingRouter({ fs, file, adminUser, adminPassword }) {
+const SCORE_MODES = new Set(["arcade", "practice", "test"]);
+
+function validScore(score) {
+  if (!score || typeof score !== "object") return false;
+  if (typeof score.id !== "string" || score.id.trim().length < 1 || score.id.length > 120) return false;
+  if (typeof score.playerName !== "string" || score.playerName.trim().length < 1 || score.playerName.trim().length > 40) return false;
+  if (typeof score.listId !== "string" || score.listId.trim().length < 1 || score.listId.length > 120) return false;
+  if (typeof score.listName !== "string" || score.listName.trim().length < 1 || score.listName.trim().length > 120) return false;
+  if (!SCORE_MODES.has(score.mode)) return false;
+  if (!Number.isInteger(score.total) || score.total < 1 || score.total > 100) return false;
+  if (!Number.isInteger(score.correct) || score.correct < 0 || score.correct > score.total) return false;
+  if (!Number.isInteger(score.firstAttemptCorrect) || score.firstAttemptCorrect < 0 || score.firstAttemptCorrect > score.correct) return false;
+  if (!Number.isFinite(score.score) || score.score < 0 || score.score > 1_000_000_000) return false;
+  if (typeof score.completedAt !== "string" || Number.isNaN(Date.parse(score.completedAt))) return false;
+  return true;
+}
+
+function normalizeScore(score) {
+  return {
+    id: score.id.trim(),
+    playerName: score.playerName.trim().slice(0, 40),
+    listId: score.listId.trim().slice(0, 120),
+    listName: score.listName.trim().slice(0, 120),
+    mode: score.mode,
+    total: score.total,
+    correct: score.correct,
+    firstAttemptCorrect: score.firstAttemptCorrect,
+    accuracy: Math.round(score.correct / score.total * 100),
+    score: Math.round(score.score),
+    completedAt: new Date(score.completedAt).toISOString()
+  };
+}
+
+function createSpellingRouter({ fs, file, scoresFile, adminUser, adminPassword }) {
   const router = express.Router();
   const store = createSpellingStore({ fs, file });
+  const scoreStore = createSpellingScoreStore({ fs, file: scoresFile });
   function requireAdmin(req, res, next) {
     if (!adminUser || !adminPassword) return res.status(503).json({ ok: false, error: "spelling_admin_not_configured" });
     const header = req.get("authorization") || "";
@@ -76,6 +111,25 @@ function createSpellingRouter({ fs, file, adminUser, adminPassword }) {
     res.json({ ok: true, list });
   });
 
+  router.post("/spelling/scores", (req, res) => {
+    if (!validScore(req.body)) return res.status(400).json({ ok: false, error: "invalid_spelling_score" });
+    const next = scoreStore.append(normalizeScore(req.body));
+    const record = next.records.find(item => item.id === req.body.id.trim());
+    res.status(200).json({ ok: true, record });
+  });
+
+  router.get("/spelling/admin/scores", requireAdmin, (req, res) => {
+    const records = scoreStore.read().records.slice().sort((a, b) => b.completedAt.localeCompare(a.completedAt));
+    const byMode = records.reduce((counts, record) => { counts[record.mode] = (counts[record.mode] || 0) + 1; return counts; }, {});
+    res.set("Cache-Control", "no-store");
+    res.json({ ok: true, records, totals: { recordCount: records.length, playerCount: new Set(records.map(record => record.playerName.toLowerCase())).size, byMode } });
+  });
+
+  router.delete("/spelling/admin/scores", requireAdmin, (req, res) => {
+    scoreStore.clear();
+    res.json({ ok: true });
+  });
+
   router.put("/spelling/admin/list", requireAdmin, (req, res) => {
     const list = req.body;
     if (!validList(list)) return res.status(400).json({ ok: false, error: "invalid_spelling_list" });
@@ -94,4 +148,4 @@ function createSpellingRouter({ fs, file, adminUser, adminPassword }) {
   return router;
 }
 
-module.exports = { createSpellingRouter };
+module.exports = { createSpellingRouter, normalizeScore, validScore };
