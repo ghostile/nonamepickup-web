@@ -105,7 +105,7 @@ const MVP_CTES = `
         NULLIF(m.steam_id, ''),
         LOWER(TRIM(m.mvp_display_name))
       ) AS identity
-    FROM match_round_mvps m
+    FROM canonical_match_mvps m
     LEFT JOIN steam_links pk ON pk.steam_id = m.mvp_player_key
     LEFT JOIN steam_links sid ON sid.steam_id = m.steam_id
     LEFT JOIN ratings r ON r.player_id = COALESCE(pk.discord_id, sid.discord_id)

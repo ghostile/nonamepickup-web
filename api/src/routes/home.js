@@ -145,7 +145,7 @@ function createHomeRouter({ db, cached, logRouteError, sendError }) {
               ) AS identity,
               COALESCE(psi_key.discord_id, psi_sid.discord_id) AS player_id,
               COALESCE(r.display_name, m.mvp_display_name, m.mvp_player_key, m.steam_id) AS player
-            FROM match_round_mvps m
+            FROM canonical_match_mvps m
             LEFT JOIN player_steam_ids psi_key ON psi_key.steam_id=m.mvp_player_key
             LEFT JOIN player_steam_ids psi_sid ON psi_sid.steam_id=m.steam_id
             LEFT JOIN ratings r ON r.player_id=COALESCE(psi_key.discord_id,psi_sid.discord_id)
@@ -166,7 +166,7 @@ function createHomeRouter({ db, cached, logRouteError, sendError }) {
             SELECT
                 COALESCE(psi_key.discord_id,psi_sid.discord_id) AS player_id,
                 COUNT(DISTINCT m.match_id) AS mvp_games
-              FROM match_round_mvps m
+              FROM canonical_match_mvps m
               LEFT JOIN player_steam_ids psi_key ON psi_key.steam_id=m.mvp_player_key
               LEFT JOIN player_steam_ids psi_sid ON psi_sid.steam_id=m.steam_id
               WHERE COALESCE(psi_key.discord_id,psi_sid.discord_id) IS NOT NULL

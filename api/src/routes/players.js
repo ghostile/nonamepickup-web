@@ -1351,7 +1351,7 @@ router.get("/player/:discordId/v3",(req,res)=>{
       try{
         const mvpRow=db.prepare(`
           SELECT COUNT(DISTINCT match_id) AS mvp_games
-          FROM match_round_mvps
+          FROM canonical_match_mvps
           WHERE mvp_player_key IN (${placeholders(steamIds)})
              OR steam_id IN (${placeholders(steamIds)})
         `).get(...steamIds,...steamIds);
@@ -1489,7 +1489,7 @@ router.get("/player/:id/recent", (req, res) => {
         const ids = steamIds.map(() => "?").join(",");
         mvpMatchIds = new Set(db.prepare(`
           SELECT DISTINCT match_id
-          FROM match_round_mvps
+          FROM canonical_match_mvps
           WHERE mvp_player_key IN (${ids}) OR steam_id IN (${ids})
         `).all(...steamIds, ...steamIds).map(row => String(row.match_id)));
       } catch (mvpError) {

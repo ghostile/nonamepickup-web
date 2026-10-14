@@ -229,7 +229,7 @@ function createApp({
           SELECT recent.*, EXISTS (
             SELECT 1
             FROM player_steam_ids psi
-            JOIN match_round_mvps mvp
+            JOIN canonical_match_mvps mvp
               ON mvp.mvp_player_key = psi.steam_id OR mvp.steam_id = psi.steam_id
             WHERE CAST(psi.discord_id AS TEXT) = CAST(recent.player_id AS TEXT)
               AND mvp.match_id = recent.match_id
