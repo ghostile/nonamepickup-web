@@ -641,6 +641,34 @@
     })).join("") || empty(emptyText));
   }
 
+  function renderFeaturedRecords(rows) {
+    const featured = (rows || []).filter(row => (
+      row?.map && Number.isFinite(Number(row?.bestTimeMs)) && (row?.playerName || row?.player_name || row?.steamId || row?.steamid)
+    )).slice(0, 5);
+
+    setHtml("sr-featured-records", featured.map(row => {
+      const href = mapUrl(row.map);
+      const recordRow = {
+        ...row,
+        playerName: row.playerName || row.player_name,
+        hasReplay: hasReplay(row)
+      };
+      return `
+        <article class="speedrun-featured-card" role="link" tabindex="0" data-row-href="${escapeAttr(href)}" aria-label="View ${escapeAttr(row.map)} world record">
+          <div class="speedrun-featured-art">${mapThumbnail(row.map)}<span class="speedrun-featured-badge">CURRENT WR</span></div>
+          <div class="speedrun-featured-body">
+            <div class="speedrun-featured-mapline"><a href="${escapeAttr(href)}">${escapeHtml(row.map)}</a><span aria-hidden="true">↗</span></div>
+            <strong class="speedrun-featured-time">${escapeHtml(time(row, "bestTime"))}</strong>
+            <div class="speedrun-featured-holder">${runnerLink(recordRow)} <span>·</span> ${classBadge(row)}</div>
+            <div class="speedrun-featured-meta"><span>Set ${escapeHtml(dateOnly(achievedTimestamp(row)))}</span>${replayLink(recordRow, "Replay")}</div>
+          </div>
+        </article>
+      `;
+    }).join("") || empty("No current world records available yet."));
+    hydrateMapImages($("sr-featured-records"));
+    setupLinkedRows($("sr-featured-records"));
+  }
+
   function msValue(value) {
     const ms = Number(value);
     return Number.isFinite(ms) ? ms : null;
@@ -1272,25 +1300,23 @@
   function renderRecentRuns(rows, recentRecords, recentWorldRecords) {
     const pbKeys = new Set((recentRecords || []).map(row => recordMatchKey(row, "bestTimeMs")));
     const wrKeys = new Set((recentWorldRecords || []).map(row => recordMatchKey(row, "bestTimeMs")));
-    setHtml("sr-recent-runs", (rows || []).slice(0, 6).map(row => {
+    setHtml("sr-recent-runs", (rows || []).slice(0, 8).map(row => {
       const href = mapUrl(row.map);
       const key = recordMatchKey(row, "timeMs");
       const status = wrKeys.has(key)
         ? `<span class="speedrun-run-status wr">WR</span>`
         : pbKeys.has(key) ? `<span class="speedrun-run-status">PB</span>` : "";
       return `
-        <article class="speedrun-activity-row" role="link" tabindex="0" data-row-href="${escapeAttr(href)}">
-          <div class="speedrun-activity-main">
-            <strong>${runnerLink(row)}${status}</strong>
-            <span><a href="${escapeAttr(href)}">${escapeHtml(row.map || "Unknown map")}</a> · ${classBadge(row)}</span>
-          </div>
-          <div class="speedrun-activity-value"><strong>${time(row)}</strong><span>${escapeHtml(formatDateTime(timestampValue(row, "createdAt", "created_at")))}</span></div>
-          ${replayAction(row)}
-          <span class="speedrun-row-arrow" aria-hidden="true">›</span>
-        </article>
+        <tr>
+          <td><a href="${escapeAttr(href)}">${escapeHtml(row.map || "Unknown map")}</a></td>
+          <td>${runnerLink(row)}${status}</td>
+          <td>${classBadge(row)}</td>
+          <td class="speedrun-time">${escapeHtml(time(row))}</td>
+          <td class="speedrun-map-v2-date">${escapeHtml(formatDateTime(timestampValue(row, "createdAt", "created_at")))}</td>
+          <td class="speedrun-replay-cell">${replayCell(row)}</td>
+        </tr>
       `;
-    }).join("") || empty("No recent runs yet."));
-    setupLinkedRows($("sr-recent-runs"));
+    }).join("") || `<tr><td colspan="6">${empty("No recent runs yet.")}</td></tr>`);
   }
 
   function renderTopRunners(rows, profiles = new Map()) {
@@ -1351,6 +1377,7 @@
       setText("sr-runners", compact(summary.runners));
       setText("sr-records", compact(summary.records));
       setText("speedrun-status", "Records loaded from the NoName timer.");
+      renderFeaturedRecords(summary.featuredRecords || summary.recentWorldRecords);
       renderTopMaps(summary.popularMaps);
       renderRecentRuns(summary.recentRuns, summary.recentRecords, summary.recentWorldRecords);
       renderTopRunners(summary.topRunners);

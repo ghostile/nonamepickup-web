@@ -508,6 +508,7 @@ function createSpeedrunsRouter({ logRouteError }) {
       countRows,
       recentRuns,
       recentWorldRecords,
+      featuredRecords,
       recentRecords,
       topRunners,
       popularMaps
@@ -578,6 +579,41 @@ function createSpeedrunsRouter({ logRouteError }) {
         WHERE ranked.rn = 1
         ORDER BY COALESCE(ranked.pb_created_at, ranked.updated_at) DESC, ranked.map ASC
         LIMIT 10
+      `),
+      speedrunQuery(`
+        SELECT
+          ranked.steamid,
+          l.discord_id,
+          ranked.player_name,
+          ranked.map,
+          ranked.class_id,
+          ranked.class_name,
+          ranked.best_time_ms,
+          ranked.pb_created_at,
+          ranked.updated_at,
+          EXISTS (
+            SELECT 1
+            FROM speedrun_ghosts g
+            JOIN speedrun_runs gr ON gr.id = g.run_id
+            WHERE g.map = ranked.map AND g.class_id = ranked.class_id AND g.steamid = ranked.steamid
+              AND g.ghost_time_ms = ranked.best_time_ms AND g.is_complete = 1
+              AND gr.ruleset = ${CURRENT_RULESET}
+            LIMIT 1
+          ) AS has_replay
+        FROM (
+          SELECT r.*, ROW_NUMBER() OVER (
+            PARTITION BY r.map
+            ORDER BY r.best_time_ms ASC, COALESCE(r.pb_created_at, r.updated_at) ASC, r.steamid ASC, r.class_id ASC
+          ) AS rn
+          FROM speedrun_records r
+          WHERE r.ruleset = ${CURRENT_RULESET}
+            AND ${eligibleRecordSql("r.")}
+        ) ranked
+        LEFT JOIN speedrun_player_links l ON l.steamid = ranked.steamid
+        WHERE ranked.rn = 1
+          AND (ranked.player_name IS NOT NULL OR ranked.steamid IS NOT NULL)
+        ORDER BY COALESCE(ranked.pb_created_at, ranked.updated_at) DESC, ranked.map ASC
+        LIMIT 5
       `),
       speedrunQuery(`
         SELECT
@@ -666,6 +702,7 @@ function createSpeedrunsRouter({ logRouteError }) {
       recentRuns: recentRuns.map(mapRun),
       recentRecords: recentRecords.map(row => mapRecord(row)),
       recentWorldRecords: recentWorldRecords.map(row => mapRecord(row)),
+      featuredRecords: featuredRecords.map(row => mapRecord(row)),
       topRunners: topRunners.map(row => ({
       discordId: row.discord_id,
       playerName: row.player_name || row.discord_id,
