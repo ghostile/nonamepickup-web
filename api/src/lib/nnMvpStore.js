@@ -125,6 +125,22 @@ function storedResultMatches(row, payload) {
 }
 
 function persistMatchNnMvp(db, matchId, payload, computedAt = Math.floor(Date.now() / 1000)) {
+  const current = db.prepare(`
+    SELECT
+      nn_mvp_player_key,
+      nn_mvp_steam_id,
+      nn_mvp_display_name,
+      nn_mvp_final_score,
+      nn_mvp_display_score,
+      nn_mvp_formula_version,
+      nn_mvp_status,
+      nn_mvp_reason
+    FROM matches
+    WHERE match_id = ?
+  `).get(matchId);
+  if (!current) throw new Error(`Match not found: ${matchId}`);
+  if (storedResultMatches(current, payload)) return { changes: 0, unchanged: true };
+
   const available = Boolean(payload?.available && payload?.winner);
   const winner = available ? payload.winner : {};
   const formulaVersion = payload?.formula_version || FORMULA_VERSION;

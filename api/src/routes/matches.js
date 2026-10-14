@@ -1,7 +1,12 @@
 "use strict";
 
 const express = require("express");
-const { buildNnMvp } = require("../lib/nnMvp");
+const {
+  loadNnMvpInputs,
+  calculateMatchNnMvp,
+  persistMatchNnMvp
+} = require("../lib/nnMvpStore");
+const { canonicalMvpSource } = require("../lib/canonicalMvp");
 const { readMatchServers } = require("../lib/matchServers");
 const { readMatchBuildings } = require("../lib/matchBuildings");
 
@@ -80,31 +85,8 @@ function createMatchesRouter({
       const playersByMatch=loadMatchPlayers([row]);
       const match=serializeMatch(row,playersByMatch);
 
-      const playerStats=db.prepare(`
-      SELECT
-        COALESCE(r.display_name,s.display_name,s.player_key,s.steam_id) AS display_name,
-        s.steam_id,
-        s.player_key,
-        s.team,
-        s.kills,
-        s.deaths,
-        s.team_kills,
-        s.enemy_damage AS damage,
-        s.team_damage,
-        s.damage_taken,
-        s.flag_captures AS caps,
-        s.flag_touches AS touches,
-        s.initial_touches,
-        s.conc_jumps,
-        s.flag_time_seconds,
-        s.main_class
-      FROM match_player_stats s
-      LEFT JOIN player_steam_ids psi_key ON psi_key.steam_id=s.player_key
-      LEFT JOIN player_steam_ids psi_sid ON psi_sid.steam_id=s.steam_id
-      LEFT JOIN ratings r ON r.player_id=COALESCE(psi_key.discord_id,psi_sid.discord_id)
-      WHERE s.match_id=?
-      ORDER BY s.kills DESC
-    `).all(matchId);
+      const nnInputs=loadNnMvpInputs(db,matchId);
+      const playerStats=nnInputs.playerStats;
 
       const classStats=db.prepare(`
       SELECT
@@ -142,9 +124,9 @@ function createMatchesRouter({
     `).all(matchId);
 
       let rounds=[];
-      let roundPlayerStats=[];
+      let roundPlayerStats=nnInputs.roundPlayerStats;
       let roundMvps=[];
-      let flagCarrierKills=[];
+      const flagCarrierKills=nnInputs.flagCarrierKills;
       let capTimeline=[];
       let roundWeaponStats=[];
 
@@ -193,46 +175,6 @@ function createMatchesRouter({
       }
 
       try{
-        roundPlayerStats=db.prepare(`
-          SELECT
-            match_id,
-            player_key,
-            steam_id,
-            display_name,
-            round_num,
-            team_name,
-            role,
-            kills,
-            team_kills,
-            conced_kills,
-            sentry_kills,
-            deaths_by_enemy,
-            deaths_by_team,
-            suicides,
-            enemy_damage,
-            team_damage,
-            damage_taken_enemy,
-            damage_taken_team,
-            self_damage,
-            conc_jumps,
-            flag_captures,
-            flag_touches,
-            initial_touches,
-            flag_time_seconds,
-            objectives,
-            toss_percent
-          FROM match_player_round_stats
-          WHERE match_id=?
-          ORDER BY round_num, kills DESC
-        `).all(matchId);
-      }catch(roundError){
-        const message=String(roundError?.message||"");
-        if(!message.includes("no such table")){
-          logRouteError("[/api/match/:matchId round player stats]",roundError);
-        }
-      }
-
-      try{
         roundMvps=db.prepare(`
           SELECT
             match_id,
@@ -248,23 +190,6 @@ function createMatchesRouter({
         const message=String(roundError?.message||"");
         if(!message.includes("no such table")){
           logRouteError("[/api/match/:matchId round mvps]",roundError);
-        }
-      }
-
-      try{
-        flagCarrierKills=db.prepare(`
-          SELECT
-            e.attacker_key AS player_key,
-            e.attacker_steam_id AS steam_id,
-            SUM(CASE WHEN e.is_enemy_kill=1 AND e.is_flag_carrier_kill=1 THEN 1 ELSE 0 END) AS flag_carrier_kills
-          FROM match_kill_events e
-          WHERE e.match_id=?
-          GROUP BY e.attacker_key,e.attacker_steam_id
-        `).all(matchId);
-      }catch(killEventError){
-        const message=String(killEventError?.message||"");
-        if(!message.includes("no such table")){
-          logRouteError("[/api/match/:matchId kill events]",killEventError);
         }
       }
 
@@ -315,11 +240,11 @@ function createMatchesRouter({
         }
       }
 
-      const nnMvp=buildNnMvp({
-        playerStats,
-        roundPlayerStats,
-        flagCarrierKills
-      });
+      const nnMvp=calculateMatchNnMvp(db,matchId,{playerStats,roundPlayerStats,flagCarrierKills});
+      const mvpSource=canonicalMvpSource(match.created_at);
+      if(mvpSource==="nn"&&String(match.status||"")==="completed"){
+        persistMatchNnMvp(db,matchId,nnMvp);
+      }
 
       const matchMvpsByIdentity=new Map();
       for(const mvp of roundMvps){
@@ -337,7 +262,17 @@ function createMatchesRouter({
         }
         matchMvp.rounds.push(Number(mvp.round_num||0));
       }
-      const matchMvps=Array.from(matchMvpsByIdentity.values());
+      const hampalyzerMatchMvps=Array.from(matchMvpsByIdentity.values());
+      const matchMvps=mvpSource==="nn"
+        ?(nnMvp?.available&&nnMvp.winner?[{
+          mvp_display_name:nnMvp.winner.display_name,
+          mvp_player_key:nnMvp.winner.player_key,
+          steam_id:nnMvp.winner.steam_id,
+          final_score:nnMvp.winner.final_score,
+          display_score:nnMvp.winner.display_score,
+          rounds:[]
+        }]:[])
+        :hampalyzerMatchMvps;
 
       res.json({
         ok:true,
@@ -353,11 +288,11 @@ function createMatchesRouter({
             kills:Number(p.kills||0),
             deaths:Number(p.deaths||0),
             team_kills:Number(p.team_kills||0),
-            damage:Number(p.damage||0),
+            damage:Number(p.enemy_damage||0),
             team_damage:Number(p.team_damage||0),
             damage_taken:Number(p.damage_taken||0),
-            caps:Number(p.caps||0),
-            touches:Number(p.touches||0),
+            caps:Number(p.flag_captures||0),
+            touches:Number(p.flag_touches||0),
             initial_touches:Number(p.initial_touches||0),
             conc_jumps:Number(p.conc_jumps||0),
             flag_time_seconds:Number(p.flag_time_seconds||0)
@@ -421,7 +356,7 @@ function createMatchesRouter({
           objectives:Number(p.objectives||0),
           toss_percent:Number(p.toss_percent||0)
         })),
-        round_mvps:roundMvps.map(mvp=>({
+        round_mvps:(mvpSource==="nn"?[]:roundMvps).map(mvp=>({
           match_id:mvp.match_id,
           round_num:Number(mvp.round_num||0),
           mvp_display_name:mvp.mvp_display_name,
@@ -439,6 +374,7 @@ function createMatchesRouter({
       touches:event.touches == null ? null : Number(event.touches)
         })),
         match_mvps:matchMvps.map(({identity,...mvp})=>mvp),
+        mvp_source:mvpSource,
         nn_mvp:nnMvp
         }
       });

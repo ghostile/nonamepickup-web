@@ -30,6 +30,11 @@ const ANALYTICS_WARM_INTERVAL_MS = nonNegativeInt(
   5 * 60 * 1000,
   24 * 60 * 60 * 1000
 );
+const NN_MVP_SYNC_INTERVAL_MS = nonNegativeInt(
+  process.env.NN_MVP_SYNC_INTERVAL_MS,
+  60 * 1000,
+  24 * 60 * 60 * 1000
+);
 const STEAM_API_KEY = process.env.STEAM_API_KEY || "";
 const CURRENT_RULESET = 2;
 const MIN_VALID_RUN_TIME_MS = positiveInt(process.env.MIN_VALID_RUN_TIME_MS, 2000, 1, 60 * 60 * 1000);
@@ -85,6 +90,7 @@ const config = {
   MAX_PLAYER_MATCH_LIMIT,
   ANALYTICS_RETENTION_DAYS,
   ANALYTICS_WARM_INTERVAL_MS,
+  NN_MVP_SYNC_INTERVAL_MS,
   STEAM_API_KEY,
   CURRENT_RULESET,
   MIN_VALID_RUN_TIME_MS,
