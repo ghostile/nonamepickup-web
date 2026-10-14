@@ -1368,18 +1368,18 @@ function createSpeedrunsRouter({ logRouteError }) {
           r.pb_created_at,
           r.updated_at,
           (
-            SELECT CASE
-              WHEN COUNT(*) = 1 THEN MAX(matching_run.conc_limit)
-              ELSE NULL
-            END
+            SELECT matching_run.conc_limit
             FROM speedrun_runs matching_run
             WHERE matching_run.ruleset = ${CURRENT_RULESET}
               AND matching_run.map = r.map
               AND matching_run.class_id <=> r.class_id
               AND matching_run.steamid <=> r.steamid
               AND matching_run.time_ms = r.best_time_ms
-              AND r.pb_created_at IS NOT NULL
-              AND matching_run.created_at = r.pb_created_at
+            ORDER BY
+              CASE WHEN COALESCE(r.pb_created_at, r.updated_at) IS NULL THEN 1 ELSE 0 END,
+              ABS(TIMESTAMPDIFF(MICROSECOND, matching_run.created_at, COALESCE(r.pb_created_at, r.updated_at))),
+              matching_run.id DESC
+            LIMIT 1
           ) AS conc_limit,
           COALESCE(attempt_stats.attempts, 0) AS attempts,
           EXISTS (
