@@ -43,6 +43,7 @@ function renderMatch(m){
   const roundPlayerStats=Array.isArray(m.round_player_stats)?m.round_player_stats:[];
   const roundMvps=Array.isArray(m.round_mvps)?m.round_mvps:[];
   const matchMvps=Array.isArray(m.match_mvps)?m.match_mvps:[];
+  const mvpSource=String(m.mvp_source||"hampalyzer");
   const roundSections=rounds.length||roundPlayerStats.length
     ?renderRoundSections(rounds,roundPlayerStats,roundMvps,blue,red,players)
     :"";
@@ -89,6 +90,8 @@ function renderMatch(m){
       ${m.tfcstats_url?`<a href="${escapeAttr(m.tfcstats_url)}" target="_blank" rel="noopener noreferrer">TFCStats</a>`:""}
       <a href="matches.html">Back to Matches</a>
     </div>
+
+    ${renderCanonicalMvpCard(mvpSource,m.nn_mvp)}
 
     <div class="rounds-layout">${roundSections}</div>
 
@@ -290,9 +293,9 @@ function renderMvpComponent(label,value,tooltip,extraClass=""){
   `;
 }
 
-function renderNnMvpBox(nnMvp){
+function renderNnMvpBox(nnMvp,title="NoName MVP"){
   if(!nnMvp||nnMvp.available===false||!nnMvp.winner){
-    return renderUnavailableMvp("NoName MVP","NN MVP unavailable");
+    return renderUnavailableMvp(title,"NN MVP unavailable");
   }
 
   const winner=nnMvp.winner;
@@ -305,7 +308,7 @@ function renderNnMvpBox(nnMvp){
     <article class="match-mvp-box noname">
       <div class="match-mvp-box-head">
         ${renderMvpBadge()}
-        <span>NoName MVP</span>
+        <span>${escapeHtml(title)}</span>
       </div>
       <div class="match-mvp-name">${escapeHtml(winner.display_name||winner.player_key||winner.steam_id||"Unknown")}</div>
       <div class="match-mvp-score" tabindex="0" title="${escapeAttr(NN_MVP_TOOLTIPS.score)}" aria-label="${escapeAttr(`Score ${scoreText}. ${NN_MVP_TOOLTIPS.score}`)}">Score <strong>${escapeHtml(scoreText)}</strong></div>
@@ -321,6 +324,21 @@ function renderNnMvpBox(nnMvp){
         </ul>
       `:""}
     </article>
+  `;
+}
+
+function renderCanonicalMvpCard(mvpSource,nnMvp){
+  if(mvpSource!=="nn")return"";
+  return `
+    <section class="match-card match-mvps-card agrees">
+      <div class="match-mvps-head">
+        <h2>Game MVP</h2>
+        <span class="match-mvps-status agree">NN scoring</span>
+      </div>
+      <div class="match-mvps-grid">
+        ${renderNnMvpBox(nnMvp,"Game MVP")}
+      </div>
+    </section>
   `;
 }
 
