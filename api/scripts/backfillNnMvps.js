@@ -1,12 +1,20 @@
 "use strict";
 
+const Database = require("better-sqlite3");
 const config = require("../src/config");
 const { createDatabase } = require("../src/db");
 const { NN_MVP_CUTOFF_EPOCH } = require("../src/lib/canonicalMvp");
 const { syncPendingNnMvps } = require("../src/lib/nnMvpStore");
 
 const apply = process.argv.includes("--apply");
-const db = createDatabase(config.ELO_DB, config.ANALYTICS_RETENTION_DAYS);
+const db = apply
+  ? createDatabase(config.ELO_DB, config.ANALYTICS_RETENTION_DAYS)
+  : new Database(config.ELO_DB, { readonly: true, fileMustExist: true });
+
+if (!apply) {
+  db.pragma("busy_timeout = 5000");
+  db.pragma("query_only = ON");
+}
 
 try {
   const summary = syncPendingNnMvps(db, {
