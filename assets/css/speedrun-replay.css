@@ -1168,14 +1168,36 @@
   .replay-input-actions { gap: 4px; margin-top: 4px; }
   .replay-input-hud kbd { min-height: 32px; font-size: 9px; }
 
-  .replay-input-hud { display: flex; flex-direction: column; }
-  .replay-speedometer { order: 1; }
-  .replay-timing-mini { order: 2; display: block; margin-top: 7px; padding-top: 7px; }
-  .replay-keyboard { order: 3; }
-  .replay-input-actions { order: 4; }
+  .replay-input-hud {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 7px;
+  }
+  .replay-speedometer {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+  .replay-timing-mini {
+    grid-column: 1;
+    grid-row: 2;
+    display: block;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+  .replay-keyboard {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: center;
+    transform: none;
+  }
+  .replay-input-actions {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
   .replay-timing-mini-heading,
   .replay-mini-splits-table { display: none; }
-  .replay-timing-mini:not(.has-checkpoints) .replay-timing-mini-summary {
+  .replay-timing-mini-summary {
     grid-template-columns: 1fr;
   }
   .replay-timing-mini-summary > div { padding: 6px; }
