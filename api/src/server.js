@@ -165,9 +165,11 @@ function syncNnMvps() {
   }
 }
 
-const nnMvpStartupTimer = setTimeout(syncNnMvps, 500);
-nnMvpStartupTimer.unref();
-const nnMvpSyncTimer = config.NN_MVP_SYNC_INTERVAL_MS > 0
+const nnMvpStartupTimer = config.NN_MVP_SYNC_INTERVAL_MS > 0
+  ? setTimeout(syncNnMvps, 500)
+  : null;
+nnMvpStartupTimer?.unref();
+const nnMvpSyncTimer = nnMvpStartupTimer
   ? setInterval(syncNnMvps, config.NN_MVP_SYNC_INTERVAL_MS)
   : null;
 nnMvpSyncTimer?.unref();
@@ -177,7 +179,7 @@ function shutdown(signal) {
   if (shuttingDown) return;
   shuttingDown = true;
   console.log(`[shutdown] ${signal}`);
-  clearTimeout(nnMvpStartupTimer);
+  if (nnMvpStartupTimer) clearTimeout(nnMvpStartupTimer);
   if (nnMvpSyncTimer) clearInterval(nnMvpSyncTimer);
 
   const forceTimer = setTimeout(() => process.exit(1), 10_000);

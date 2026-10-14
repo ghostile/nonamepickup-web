@@ -3,10 +3,32 @@
 const Database = require("better-sqlite3");
 const config = require("../src/config");
 const { createDatabase } = require("../src/db");
+const { initializeSchema } = require("../src/db/schema");
 const { NN_MVP_CUTOFF_EPOCH } = require("../src/lib/canonicalMvp");
 const { syncPendingNnMvps } = require("../src/lib/nnMvpStore");
 
 const apply = process.argv.includes("--apply");
+const prepareSchema = process.argv.includes("--prepare-schema");
+
+if (apply && prepareSchema) {
+  throw new Error("Use either --prepare-schema or --apply, not both");
+}
+
+if (prepareSchema) {
+  const schemaDb = new Database(config.ELO_DB);
+  try {
+    schemaDb.pragma("journal_mode = WAL");
+    schemaDb.pragma("synchronous = NORMAL");
+    schemaDb.pragma("busy_timeout = 5000");
+    schemaDb.pragma("foreign_keys = ON");
+    initializeSchema(schemaDb);
+    console.log(`Prepared canonical NN MVP schema in ${config.ELO_DB}; no MVP results were written.`);
+  } finally {
+    schemaDb.close();
+  }
+  process.exit(0);
+}
+
 const db = apply
   ? createDatabase(config.ELO_DB, config.ANALYTICS_RETENTION_DAYS)
   : new Database(config.ELO_DB, { readonly: true, fileMustExist: true });

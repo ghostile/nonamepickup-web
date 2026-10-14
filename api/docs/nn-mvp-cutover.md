@@ -4,7 +4,7 @@ This rollout makes `nn-mvp-v1` canonical for completed matches created at or aft
 
 ## 1. Deploy the additive code
 
-Deploy the website/API revision containing the NN MVP schema, canonical view, persistence service, and public query changes. The API initializes the nullable `matches.nn_mvp_*` columns and recreates `canonical_match_mvps` when it opens the database.
+Deploy the website/API revision containing the NN MVP schema, canonical view, persistence service, and public query changes. Do not restart the API yet.
 
 Do not delete or update `match_round_mvps`. It remains the preserved Hampalyzer source.
 
@@ -28,15 +28,16 @@ sqlite3 "$ELO_DB" "SELECT COUNT(*) AS hampalyzer_rows, COUNT(DISTINCT match_id) 
 sqlite3 "$ELO_DB" "SELECT COUNT(*) FROM matches WHERE status='completed' AND created_at>=1791388800;"
 ```
 
-## 3. Dry run
+## 3. Prepare the additive schema and dry run
 
 From the deployed `api` directory:
 
 ```bash
+npm run backfill:nn-mvps -- --prepare-schema
 npm run backfill:nn-mvps
 ```
 
-The command is read-only without `--apply`. Review every line showing the preserved Hampalyzer identity, proposed NN identity, raw/display scores, and whether the canonical winner changes. Investigate any `FAILED` entry before continuing. `unavailable` is allowed only when the match lacks sufficient scoring inputs and will not fall back to Hampalyzer.
+The first command only adds the nullable `matches.nn_mvp_*` columns and recreates `canonical_match_mvps`; it does not compute or write MVP results. The second command is read-only. Review every line showing the preserved Hampalyzer identity, proposed NN identity, raw/display scores, and whether the canonical winner changes. Investigate any `FAILED` entry before continuing. `unavailable` is allowed only when the match lacks sufficient scoring inputs and will not fall back to Hampalyzer.
 
 ## 4. Apply
 
