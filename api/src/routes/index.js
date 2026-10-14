@@ -41,6 +41,7 @@ function registerRoutes(app, {
   QUEUE_FILE,
   KICKED_FILE,
   SPELLING_LISTS_FILE,
+  SPELLING_SCORES_FILE,
   SPELLING_ADMIN_USER,
   SPELLING_ADMIN_PASSWORD,
   DATA_DIR,
@@ -190,7 +191,7 @@ app.use("/api", createCoolestDudeRouter({
   sendError,
   logRouteError
 }));
-app.use("/api", createSpellingRouter({ fs, file: SPELLING_LISTS_FILE, adminUser: SPELLING_ADMIN_USER, adminPassword: SPELLING_ADMIN_PASSWORD }));
+app.use("/api", createSpellingRouter({ fs, file: SPELLING_LISTS_FILE, scoresFile: SPELLING_SCORES_FILE, adminUser: SPELLING_ADMIN_USER, adminPassword: SPELLING_ADMIN_PASSWORD }));
 }
 
 module.exports = { registerRoutes };

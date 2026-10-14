@@ -15,6 +15,7 @@ const SUPPORTERS_FILE = process.env.SUPPORTERS_FILE || path.join(DATA_DIR, "supp
 const QUEUE_FILE = process.env.QUEUE_FILE || path.join(DATA_DIR, "queue.json");
 const KICKED_FILE = process.env.KICKED_FILE || path.join(DATA_DIR, "kicked.json");
 const SPELLING_LISTS_FILE = process.env.SPELLING_LISTS_FILE || path.join(DATA_DIR, "spelling-lists.json");
+const SPELLING_SCORES_FILE = process.env.SPELLING_SCORES_FILE || path.join(DATA_DIR, "spelling-scores.json");
 const SPELLING_ADMIN_USER = process.env.SPELLING_ADMIN_USER || "";
 const SPELLING_ADMIN_PASSWORD = process.env.SPELLING_ADMIN_PASSWORD || "";
 // TODO(production): TRUST_PROXY must match the real proxy hop topology or client IPs and rate limits can be unreliable.
@@ -74,6 +75,7 @@ const config = {
   QUEUE_FILE,
   KICKED_FILE,
   SPELLING_LISTS_FILE,
+  SPELLING_SCORES_FILE,
   SPELLING_ADMIN_USER,
   SPELLING_ADMIN_PASSWORD,
   TRUST_PROXY,
