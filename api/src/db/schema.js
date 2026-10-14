@@ -1,5 +1,26 @@
 "use strict";
 
+const { NN_MVP_CUTOFF_EPOCH } = require("../lib/canonicalMvp");
+
+const NN_MVP_COLUMNS = {
+  nn_mvp_player_key: "TEXT",
+  nn_mvp_steam_id: "TEXT",
+  nn_mvp_display_name: "TEXT",
+  nn_mvp_final_score: "REAL",
+  nn_mvp_display_score: "REAL",
+  nn_mvp_formula_version: "TEXT",
+  nn_mvp_status: "TEXT",
+  nn_mvp_reason: "TEXT",
+  nn_mvp_computed_at: "INTEGER"
+};
+
+function ensureColumns(db, table, columns) {
+  const existing = new Set(db.prepare(`PRAGMA table_info(${table})`).all().map(row => row.name));
+  for (const [name, definition] of Object.entries(columns)) {
+    if (!existing.has(name)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`);
+  }
+}
+
 function initializeSchema(db) {
   db.exec(`
   CREATE TABLE IF NOT EXISTS web_analytics (
@@ -68,6 +89,8 @@ function initializeSchema(db) {
     ON pickup_flag_carries(match_id, round_number, session_id);
 `);
 
+  ensureColumns(db, "matches", NN_MVP_COLUMNS);
+
   db.exec(`
   CREATE TABLE IF NOT EXISTS match_kill_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -128,10 +151,62 @@ function initializeSchema(db) {
     ON match_round_mvps(mvp_player_key, match_id);
   CREATE INDEX IF NOT EXISTS idx_analytics_mrm_steam_match
     ON match_round_mvps(steam_id, match_id);
+  CREATE INDEX IF NOT EXISTS idx_matches_nn_mvp_player_key
+    ON matches(nn_mvp_player_key, match_id);
+  CREATE INDEX IF NOT EXISTS idx_matches_nn_mvp_steam_id
+    ON matches(nn_mvp_steam_id, match_id);
   CREATE INDEX IF NOT EXISTS idx_analytics_rounds_match_round
     ON match_rounds(match_id, round_num);
 
 `);
+
+  db.exec(`
+  DROP VIEW IF EXISTS canonical_match_mvps;
+  CREATE VIEW canonical_match_mvps AS
+    SELECT
+      rm.match_id,
+      MAX(rm.mvp_display_name) AS mvp_display_name,
+      MAX(rm.mvp_player_key) AS mvp_player_key,
+      MAX(rm.steam_id) AS steam_id,
+      'hampalyzer' AS source,
+      NULL AS final_score,
+      NULL AS display_score,
+      NULL AS formula_version
+    FROM match_round_mvps rm
+    JOIN matches m ON m.match_id = rm.match_id
+    WHERE m.created_at < ${NN_MVP_CUTOFF_EPOCH}
+      AND COALESCE(
+        NULLIF(rm.mvp_player_key, ''),
+        NULLIF(rm.steam_id, ''),
+        NULLIF(TRIM(rm.mvp_display_name), '')
+      ) IS NOT NULL
+    GROUP BY rm.match_id, COALESCE(
+      NULLIF(rm.mvp_player_key, ''),
+      NULLIF(rm.steam_id, ''),
+      LOWER(TRIM(rm.mvp_display_name))
+    )
+
+    UNION ALL
+
+    SELECT
+      m.match_id,
+      m.nn_mvp_display_name AS mvp_display_name,
+      m.nn_mvp_player_key AS mvp_player_key,
+      m.nn_mvp_steam_id AS steam_id,
+      'nn' AS source,
+      m.nn_mvp_final_score AS final_score,
+      m.nn_mvp_display_score AS display_score,
+      m.nn_mvp_formula_version AS formula_version
+    FROM matches m
+    WHERE m.created_at >= ${NN_MVP_CUTOFF_EPOCH}
+      AND m.status = 'completed'
+      AND m.nn_mvp_status = 'available'
+      AND COALESCE(
+        NULLIF(m.nn_mvp_player_key, ''),
+        NULLIF(m.nn_mvp_steam_id, ''),
+        NULLIF(TRIM(m.nn_mvp_display_name), '')
+      ) IS NOT NULL;
+  `);
 
   db.exec(`
   CREATE TABLE IF NOT EXISTS coolest_dude_tags (

@@ -30,6 +30,16 @@ CREATE TABLE matches (
   hampalyzer_url TEXT,
   processed_at   INTEGER
 , rng_multiplier REAL DEFAULT 1.0, bonus_elo TEXT, score_blue INTEGER, score_red  INTEGER, tfcstats_url TEXT, shuffle_history TEXT DEFAULT '[]', match_type TEXT NOT NULL DEFAULT 'pickup', player_format TEXT NOT NULL DEFAULT '4v4', expected_players INTEGER NOT NULL DEFAULT 8, scoring_mode TEXT NOT NULL DEFAULT 'rounds', team_scenarios TEXT, offense_ids TEXT);
+-- Added additively by api/src/db/schema.js for the canonical NN MVP cutover.
+ALTER TABLE matches ADD COLUMN nn_mvp_player_key TEXT;
+ALTER TABLE matches ADD COLUMN nn_mvp_steam_id TEXT;
+ALTER TABLE matches ADD COLUMN nn_mvp_display_name TEXT;
+ALTER TABLE matches ADD COLUMN nn_mvp_final_score REAL;
+ALTER TABLE matches ADD COLUMN nn_mvp_display_score REAL;
+ALTER TABLE matches ADD COLUMN nn_mvp_formula_version TEXT;
+ALTER TABLE matches ADD COLUMN nn_mvp_status TEXT;
+ALTER TABLE matches ADD COLUMN nn_mvp_reason TEXT;
+ALTER TABLE matches ADD COLUMN nn_mvp_computed_at INTEGER;
 CREATE TABLE user_prefs (
         player_id TEXT PRIMARY KEY,
         hide_elo  INTEGER NOT NULL DEFAULT 0
@@ -687,3 +697,43 @@ CREATE TABLE pickup_flag_carries (
   );
 CREATE INDEX idx_pickup_flag_carries_session
     ON pickup_flag_carries(match_id, round_number, session_id);
+
+CREATE INDEX idx_matches_nn_mvp_player_key
+    ON matches(nn_mvp_player_key, match_id);
+CREATE INDEX idx_matches_nn_mvp_steam_id
+    ON matches(nn_mvp_steam_id, match_id);
+
+-- Runtime initialization recreates this view with the fixed cutoff epoch
+-- 1791388800 (2026-10-07 12:00:00 America/New_York).
+CREATE VIEW canonical_match_mvps AS
+SELECT
+  rm.match_id,
+  MAX(rm.mvp_display_name) AS mvp_display_name,
+  MAX(rm.mvp_player_key) AS mvp_player_key,
+  MAX(rm.steam_id) AS steam_id,
+  'hampalyzer' AS source,
+  NULL AS final_score,
+  NULL AS display_score,
+  NULL AS formula_version
+FROM match_round_mvps rm
+JOIN matches m ON m.match_id = rm.match_id
+WHERE m.created_at < 1791388800
+GROUP BY rm.match_id, COALESCE(
+  NULLIF(rm.mvp_player_key, ''),
+  NULLIF(rm.steam_id, ''),
+  LOWER(TRIM(rm.mvp_display_name))
+)
+UNION ALL
+SELECT
+  m.match_id,
+  m.nn_mvp_display_name,
+  m.nn_mvp_player_key,
+  m.nn_mvp_steam_id,
+  'nn',
+  m.nn_mvp_final_score,
+  m.nn_mvp_display_score,
+  m.nn_mvp_formula_version
+FROM matches m
+WHERE m.created_at >= 1791388800
+  AND m.status = 'completed'
+  AND m.nn_mvp_status = 'available';
