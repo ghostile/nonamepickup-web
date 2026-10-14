@@ -1200,18 +1200,27 @@
   .replay-timing-mini-summary {
     grid-template-columns: 1fr;
   }
-  .replay-timing-mini-summary > div { padding: 4px 5px; }
+  .replay-timing-mini-summary > div {
+    display: flex;
+    align-items: center;
+    min-height: 25px;
+    padding: 3px 5px;
+  }
   .replay-timing-mini span,
   .replay-timing-mini-summary small { font-size: 7px; }
-  .replay-timing-mini-summary strong { margin-top: 2px; font-size: 12px; }
+  .replay-timing-mini-summary strong {
+    margin: 0 0 0 auto;
+    font-size: 11px;
+  }
+  .replay-timing-mini-summary small {
+    margin: 0 0 0 4px;
+    text-align: right;
+  }
   .replay-timing-mini-summary > div:last-child strong {
     overflow: visible;
     text-overflow: clip;
   }
-  .replay-timing-mini-summary > div:last-child small {
-    margin-top: 3px;
-    text-align: left;
-  }
+  .replay-timing-mini-summary > div:last-child small { margin-top: 0; }
 
   .replay-scrubber {
     grid-template-columns: 62px minmax(0, 1fr) 62px;

@@ -653,7 +653,7 @@ function updateSplitActiveState() {
     .some(row => row.kind === "checkpoint");
   if (timingMini) timingMini.classList.toggle("has-checkpoints", hasCheckpoints);
   const activeSplitCard = activeLabel?.closest(".replay-timing-mini-summary > div");
-  if (activeSplitCard) activeSplitCard.hidden = !hasCheckpoints;
+  if (activeSplitCard) activeSplitCard.hidden = !hasCheckpoints || activeRow?.kind === "start";
   if (activeLabel) activeLabel.textContent = activeRow ? splitEventLabel(activeRow) : "Start";
   if (activeTime) {
     activeTime.textContent = activeRow && Number.isFinite(Number(activeRow.segmentMs))
