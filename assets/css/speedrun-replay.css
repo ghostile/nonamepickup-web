@@ -991,6 +991,10 @@
   display: none;
 }
 
+.replay-mobile-timing {
+  display: none;
+}
+
 @media (max-width: 760px) {
   .replay-page {
     min-height: 100dvh;
@@ -1152,6 +1156,31 @@
     overflow-y: auto;
     padding: 7px;
   }
+
+  .replay-timing-mini { display: none; }
+
+  .replay-mobile-timing {
+    position: absolute;
+    z-index: 3;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    left: 12px;
+    display: block;
+    padding: 7px 10px;
+    border: 1px solid rgba(56, 189, 248, .4);
+    border-radius: 5px;
+    color: #f8fafc;
+    background: rgba(7, 10, 15, .72);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .24);
+    backdrop-filter: blur(8px);
+    font-family: Orbitron, Inter, sans-serif;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .replay-mobile-timing strong { color: #dff7ff; }
+  .replay-mobile-timing span { margin-left: 6px; color: #fcd34d; }
 
   .replay-speedometer {
     margin-bottom: 6px;

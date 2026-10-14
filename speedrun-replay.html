@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="assets/css/app.css?v=20261011universalscale1">
   <link rel="stylesheet" href="assets/css/style.css?v=20260618i">
   <link rel="stylesheet" href="assets/css/speedruns.css?v=20260910leaderboardfit2">
-  <link rel="stylesheet" href="assets/css/speedrun-replay.css?v=20261014timinghud4">
+  <link rel="stylesheet" href="assets/css/speedrun-replay.css?v=20261014timinghud5">
   <script src="assets/js/main.js?v=20261004nav1" defer></script>
   <script type="importmap">
     {
@@ -20,7 +20,7 @@
       }
     }
   </script>
-  <script type="module" src="assets/js/speedrun-replay.js?v=20261014timinghud4"></script>
+  <script type="module" src="assets/js/speedrun-replay.js?v=20261014timinghud5"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Orbitron:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 
@@ -61,6 +61,10 @@
     <section class="replay-stage" aria-label="Speedrun replay viewer">
       <canvas id="replay-canvas"></canvas>
       <div id="replay-status" class="replay-status">Loading replay...</div>
+      <div id="replay-mobile-timing" class="replay-mobile-timing" aria-live="polite">
+        <strong id="replay-mobile-run-time">0:00.000</strong>
+        <span id="replay-mobile-split" hidden></span>
+      </div>
       <div id="replay-grenade-hud" class="replay-grenade-hud" aria-hidden="true">
         <img id="replay-grenade-hud-image" alt="" />
         <span id="replay-grenade-hud-label">GRENADE</span>
