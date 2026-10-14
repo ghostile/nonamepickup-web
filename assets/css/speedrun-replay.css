@@ -492,6 +492,10 @@
   background: rgba(14, 165, 233, .1);
 }
 
+.replay-timing-mini-summary > div[hidden] {
+  display: none !important;
+}
+
 .replay-timing-mini span,
 .replay-timing-mini-heading,
 .replay-timing-mini-summary small {

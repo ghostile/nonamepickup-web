@@ -652,8 +652,12 @@ function updateSplitActiveState() {
   const hasCheckpoints = splitRowsForReplay(state.replay, state.splitAnalysis)
     .some(row => row.kind === "checkpoint");
   if (timingMini) timingMini.classList.toggle("has-checkpoints", hasCheckpoints);
-  const activeSplitCard = activeLabel?.closest(".replay-timing-mini-summary > div");
-  if (activeSplitCard) activeSplitCard.hidden = !hasCheckpoints || activeRow?.kind === "start";
+  const activeSplitCard = activeLabel?.parentElement;
+  const showActiveSplit = hasCheckpoints && activeRow?.kind !== "start";
+  if (activeSplitCard) {
+    activeSplitCard.hidden = !showActiveSplit;
+    activeSplitCard.setAttribute("aria-hidden", String(!showActiveSplit));
+  }
   if (activeLabel) activeLabel.textContent = activeRow ? splitEventLabel(activeRow) : "Start";
   if (activeTime) {
     activeTime.textContent = activeRow && Number.isFinite(Number(activeRow.segmentMs))
