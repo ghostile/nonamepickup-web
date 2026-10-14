@@ -1167,15 +1167,14 @@
   .replay-timing-mini { margin-top: 7px; padding-top: 7px; }
   .replay-timing-mini-summary > div { padding: 6px; }
   .replay-timing-mini-summary strong { font-size: 12px; }
-  .replay-timing-mini-summary > div:last-child {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    column-gap: 6px;
+  .replay-timing-mini-summary > div:last-child strong {
+    overflow: visible;
+    text-overflow: clip;
   }
-  .replay-timing-mini-summary > div:last-child span { grid-column: 1 / -1; }
-  .replay-timing-mini-summary > div:last-child strong,
-  .replay-timing-mini-summary > div:last-child small { margin-top: 0; }
+  .replay-timing-mini-summary > div:last-child small {
+    margin-top: 3px;
+    text-align: left;
+  }
 
   .replay-scrubber {
     grid-template-columns: 62px minmax(0, 1fr) 62px;
