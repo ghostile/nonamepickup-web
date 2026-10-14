@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="assets/css/app.css?v=20261011universalscale1">
   <link rel="stylesheet" href="assets/css/style.css?v=20260618i">
   <link rel="stylesheet" href="assets/css/speedruns.css?v=20260910leaderboardfit2">
-  <link rel="stylesheet" href="assets/css/speedrun-replay.css?v=20261013splits6">
+  <link rel="stylesheet" href="assets/css/speedrun-replay.css?v=20261014timinghud1">
   <script src="assets/js/main.js?v=20261004nav1" defer></script>
   <script type="importmap">
     {
@@ -20,7 +20,7 @@
       }
     }
   </script>
-  <script type="module" src="assets/js/speedrun-replay.js?v=20261013splits6"></script>
+  <script type="module" src="assets/js/speedrun-replay.js?v=20261014timinghud1"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Orbitron:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 
@@ -88,6 +88,27 @@
           <kbd data-input="attack">M1</kbd>
           <kbd data-input="attack2">M2</kbd>
         </div>
+        <div class="replay-timing-mini" aria-label="Replay timing">
+          <div class="replay-timing-mini-summary">
+            <div>
+              <span>RUN TIME</span>
+              <strong id="replay-run-timer">0:00.000</strong>
+            </div>
+            <div>
+              <span>ACTIVE SPLIT</span>
+              <strong id="replay-active-split">Start</strong>
+              <small id="replay-active-split-time">—</small>
+            </div>
+          </div>
+          <div class="replay-timing-mini-heading">
+            <span>SPLITS</span>
+            <small id="replay-splits-precision">Recorded timing</small>
+          </div>
+          <table class="replay-mini-splits-table" aria-label="Replay splits">
+            <thead><tr><th scope="col">Split</th><th scope="col">Time</th><th scope="col">Δ</th></tr></thead>
+            <tbody id="replay-splits-body"></tbody>
+          </table>
+        </div>
       </aside>
 
       <section class="replay-topbar" aria-label="Replay details">
@@ -131,32 +152,6 @@
         <span id="replay-compare-delta" class="replay-compare-delta"></span>
       </div>
 
-      <section id="replay-splits-panel" class="replay-splits-panel" aria-labelledby="replay-splits-heading">
-        <div class="replay-splits-heading">
-          <div>
-            <span class="replay-splits-kicker">TIMING ANALYSIS</span>
-            <h2 id="replay-splits-heading">Splits</h2>
-          </div>
-          <div class="replay-splits-heading-tools">
-            <div class="replay-splits-live-clock" aria-live="polite">
-              <span>LIVE TIME</span>
-              <strong id="replay-splits-current-time">0:00.000</strong>
-            </div>
-            <span id="replay-splits-precision" class="replay-splits-precision">Recorded timing</span>
-          </div>
-        </div>
-        <div id="replay-splits-status" class="replay-splits-status" role="status"></div>
-        <div class="replay-splits-table-wrap">
-          <table class="replay-splits-table">
-            <thead>
-              <tr><th scope="col">Split</th><th scope="col">Elapsed</th><th scope="col">Segment</th><th scope="col">vs comparison</th><th scope="col">segment Δ</th></tr>
-            </thead>
-            <tbody id="replay-splits-body"></tbody>
-          </table>
-        </div>
-        <div id="replay-theoretical-best" class="replay-theoretical-best" hidden></div>
-      </section>
-
       <div id="replay-free-roam-help" class="replay-free-roam-help" role="status" hidden>
         <strong>FREE ROAM</strong><span>Click the replay to capture the mouse · WASD move · Q/E down/up</span>
       </div>
@@ -177,7 +172,6 @@
       </div>
 
       <section class="replay-stats" aria-label="Replay frame statistics">
-        <div class="replay-run-clock-card"><span>Run time</span><strong id="replay-run-timer">0:00.000</strong></div>
         <div><span>Speed</span><strong id="replay-stat-speed">-</strong></div>
         <div><span>Position</span><strong id="replay-stat-position">-</strong></div>
         <div><span>Look</span><strong id="replay-stat-look">-</strong></div>

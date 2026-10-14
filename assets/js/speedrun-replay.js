@@ -645,6 +645,15 @@ function updateSplitActiveState() {
   document.querySelectorAll("#replay-splits-body tr[data-split-key]").forEach(row => {
     row.classList.toggle("active", row.dataset.splitKey === active);
   });
+  const activeRow = splitRowsForReplay(state.replay, state.splitAnalysis).find(row => row.key === active);
+  const activeLabel = $("replay-active-split");
+  const activeTime = $("replay-active-split-time");
+  if (activeLabel) activeLabel.textContent = activeRow ? splitEventLabel(activeRow) : "Start";
+  if (activeTime) {
+    activeTime.textContent = activeRow && Number.isFinite(Number(activeRow.segmentMs))
+      ? formatTime(Number(activeRow.segmentMs) / 1000)
+      : activeRow?.kind === "start" ? "0:00.000" : "—";
+  }
 }
 
 function renderReplayMarkers() {
@@ -702,7 +711,8 @@ function renderSplitAnalysis() {
       ? formatSignedDelta(row.segmentMs - comparisonRow.segmentMs)
       : formatSignedDelta(null);
     const elapsedText = Number.isFinite(Number(row.elapsedMs)) ? formatTime(Number(row.elapsedMs) / 1000) : "—";
-    tr.innerHTML = `<td>${splitEventLabel(row)}</td><td>${elapsedText}</td><td>${row.segmentMs == null ? "—" : formatTime(Number(row.segmentMs) / 1000)}</td><td class="${cumulative.className}">${cumulative.text}</td><td class="${segment.className}">${segment.text}</td>`;
+    tr.title = row.segmentMs == null || segment.text === "—" ? "" : `Segment delta ${segment.text}`;
+    tr.innerHTML = `<td>${splitEventLabel(row)}</td><td>${elapsedText}</td><td class="${cumulative.className}">${cumulative.text}</td>`;
     body.appendChild(tr);
   }
   if (precision) {
@@ -2608,8 +2618,6 @@ function updatePlayer() {
   if (clock) clock.textContent = formatTime(state.playbackTime);
   const runTimer = $("replay-run-timer");
   if (runTimer) runTimer.textContent = formatTime(Math.min(state.playbackTime, state.primaryDuration));
-  const splitTimer = $("replay-splits-current-time");
-  if (splitTimer) splitTimer.textContent = formatTime(Math.min(state.playbackTime, state.primaryDuration));
   updateSplitActiveState();
 }
 
