@@ -57,6 +57,8 @@ const SCORE_MODES = new Set(["arcade", "practice", "test"]);
 
 function validScore(score) {
   if (!score || typeof score !== "object") return false;
+  const allowedKeys = new Set(["id", "playerName", "listId", "listName", "mode", "total", "correct", "firstAttemptCorrect", "score", "completedAt"]);
+  if (Object.keys(score).some(key => !allowedKeys.has(key)) || JSON.stringify(score).length > 10_000) return false;
   if (typeof score.id !== "string" || score.id.trim().length < 1 || score.id.length > 120) return false;
   if (typeof score.playerName !== "string" || score.playerName.trim().length < 1 || score.playerName.trim().length > 40) return false;
   if (typeof score.listId !== "string" || score.listId.trim().length < 1 || score.listId.length > 120) return false;
