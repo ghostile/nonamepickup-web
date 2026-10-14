@@ -1160,11 +1160,19 @@
 
   .replay-speedometer-metric { padding: 0 5px; }
   .replay-speedometer strong { font-size: 17px; }
-  .replay-keyboard { grid-template-columns: repeat(3, 38px); gap: 4px; }
+  .replay-keyboard {
+    grid-template-columns: repeat(3, 38px);
+    gap: 4px;
+    transform: translateX(34px);
+  }
   .replay-input-actions { gap: 4px; margin-top: 4px; }
   .replay-input-hud kbd { min-height: 32px; font-size: 9px; }
 
-  .replay-timing-mini { display: block; margin-top: 7px; padding-top: 7px; }
+  .replay-input-hud { display: flex; flex-direction: column; }
+  .replay-speedometer { order: 1; }
+  .replay-keyboard { order: 2; }
+  .replay-timing-mini { order: 3; display: block; margin-top: 7px; padding-top: 7px; }
+  .replay-input-actions { order: 4; }
   .replay-timing-mini-heading,
   .replay-mini-splits-table { display: none; }
   .replay-timing-mini:not(.has-checkpoints) .replay-timing-mini-summary {
