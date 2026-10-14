@@ -194,6 +194,14 @@ function hampalyzerIdentities(db, matchId) {
   }
 }
 
+function touchUnavailableAttempt(db, matchId, computedAt) {
+  return retrySqliteBusy(() => db.prepare(`
+    UPDATE matches
+    SET nn_mvp_computed_at = ?
+    WHERE match_id = ? AND nn_mvp_status = 'unavailable'
+  `).run(computedAt, matchId));
+}
+
 function syncPendingNnMvps(db, options = {}) {
   const now = Number.isFinite(Number(options.now)) ? Number(options.now) : Math.floor(Date.now() / 1000);
   const limit = Math.max(1, Math.min(1_000_000, Math.trunc(Number(options.limit) || 100)));
@@ -262,6 +270,7 @@ function syncPendingNnMvps(db, options = {}) {
       summary.changes.push(record);
 
       if (!dryRun && changed) persistMatchNnMvp(db, matchId, payload, now);
+      else if (!dryRun && !record.available) touchUnavailableAttempt(db, matchId, now);
     } catch (error) {
       summary.processed += 1;
       summary.failed += 1;
