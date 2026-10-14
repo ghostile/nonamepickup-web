@@ -648,36 +648,18 @@ function updateSplitActiveState() {
   const activeRow = splitRowsForReplay(state.replay, state.splitAnalysis).find(row => row.key === active);
   const activeLabel = $("replay-active-split");
   const activeTime = $("replay-active-split-time");
+  const timingMini = document.querySelector(".replay-timing-mini");
+  const hasCheckpoints = splitRowsForReplay(state.replay, state.splitAnalysis)
+    .some(row => row.kind === "checkpoint");
+  if (timingMini) timingMini.classList.toggle("has-checkpoints", hasCheckpoints);
+  const activeSplitCard = activeLabel?.closest(".replay-timing-mini-summary > div");
+  if (activeSplitCard) activeSplitCard.hidden = !hasCheckpoints;
   if (activeLabel) activeLabel.textContent = activeRow ? splitEventLabel(activeRow) : "Start";
   if (activeTime) {
     activeTime.textContent = activeRow && Number.isFinite(Number(activeRow.segmentMs))
       ? formatTime(Number(activeRow.segmentMs) / 1000)
       : activeRow?.kind === "start" ? "0:00.000" : "—";
   }
-  updateMobileTimingOverlay(activeRow);
-}
-
-function updateMobileTimingOverlay(activeRow = null) {
-  const runTime = $("replay-mobile-run-time");
-  const split = $("replay-mobile-split");
-  if (!runTime || !split) return;
-  runTime.textContent = formatTime(Math.min(state.playbackTime, state.primaryDuration));
-  const checkpointRows = splitRowsForReplay(state.replay, state.splitAnalysis)
-    .filter(row => row.kind === "checkpoint");
-  if (!checkpointRows.length) {
-    split.hidden = true;
-    split.textContent = "";
-    return;
-  }
-  const nextCheckpoint = checkpointRows.find(row => Number(row.elapsedMs) > state.playbackTime + 0.0005);
-  const splitRow = activeRow?.kind === "checkpoint" || activeRow?.kind === "finish"
-    ? activeRow
-    : nextCheckpoint || checkpointRows.at(-1);
-  const splitTime = Number.isFinite(Number(splitRow?.segmentMs))
-    ? formatTime(Number(splitRow.segmentMs) / 1000)
-    : "—";
-  split.hidden = false;
-  split.textContent = `· ${splitEventLabel(splitRow)} ${splitTime}`;
 }
 
 function renderReplayMarkers() {
