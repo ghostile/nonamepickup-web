@@ -8,7 +8,7 @@ The original Hampalyzer round-MVP records must remain intact for audit and histo
 
 ## Cutover rule
 
-- Use a fixed cutoff timestamp corresponding to `2026-10-07 00:00:00 America/New_York`.
+- Use a fixed cutoff timestamp corresponding to `2026-10-07 12:00:00 America/New_York` (noon EDT, UTC−04:00).
 - For matches before the cutoff, the canonical MVP remains the existing Hampalyzer-derived identity from `match_round_mvps`.
 - For matches on or after the cutoff, the canonical MVP is the rank-1 result produced by `nn-mvp-v1` from the complete match statistics.
 - The NN winner is selected by the existing raw `final_score` ordering. The normalized `/100` display score is presentation data and must not determine the winner.
