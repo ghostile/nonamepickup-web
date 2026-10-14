@@ -43,7 +43,6 @@ function renderMatch(m){
   const roundPlayerStats=Array.isArray(m.round_player_stats)?m.round_player_stats:[];
   const roundMvps=Array.isArray(m.round_mvps)?m.round_mvps:[];
   const matchMvps=Array.isArray(m.match_mvps)?m.match_mvps:[];
-  const mvpSource=String(m.mvp_source||"hampalyzer");
   const roundSections=rounds.length||roundPlayerStats.length
     ?renderRoundSections(rounds,roundPlayerStats,roundMvps,blue,red,players)
     :"";
@@ -90,8 +89,6 @@ function renderMatch(m){
       ${m.tfcstats_url?`<a href="${escapeAttr(m.tfcstats_url)}" target="_blank" rel="noopener noreferrer">TFCStats</a>`:""}
       <a href="matches.html">Back to Matches</a>
     </div>
-
-    ${renderCanonicalMvpCard(mvpSource,m.nn_mvp)}
 
     <div class="rounds-layout">${roundSections}</div>
 
