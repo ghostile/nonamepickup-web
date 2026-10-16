@@ -99,7 +99,7 @@
   .diq-team .diq-player-header h4{font-size:14px;line-height:1.3;flex-shrink:0}
   .diq-team .diq-player-header p{font-size:10px;line-height:1.3;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .diq-team .diq-tag{font-size:10px;padding:3px 6px}
-  .diq-match-distribution{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+  .diq-match-distribution{display:grid;grid-template-columns:repeat(var(--diq-class-count,4),minmax(0,1fr));gap:12px}
   .diq-match-distribution .diq-column-labels{display:none}
   .diq-match-distribution .diq-class-row{grid-template-columns:1fr 1fr;gap:2px 8px;padding:0;border:0;font-size:11px}
   .diq-match-distribution .diq-class-name{grid-column:1/-1;gap:4px;font-size:11px;line-height:18px}
@@ -113,3 +113,7 @@
   .diq-team .diq-results-detail summary{font-size:10px;line-height:14px;color:var(--diq-muted)}
   .diq-method{margin-top:8px;padding:7px 12px}.diq-method summary{font-size:11px}
 }
+
+.diq-unused-toggle{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:6px 0 8px;color:var(--diq-muted);font-size:11px;cursor:pointer}
+.diq-unused-toggle input{margin:0;accent-color:#60a5fa}
+.diq-unused-toggle span{margin-left:auto;font-size:10px}

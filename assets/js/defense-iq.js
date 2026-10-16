@@ -72,11 +72,11 @@
   function bar(value, seconds) {
     return `<div class="diq-bar-value"><strong>${value}%</strong>${seconds == null ? "" : `<small>${clock(seconds)}</small>`}</div><div class="diq-track" aria-hidden="true"><span style="width:${value}%"></span></div>`;
   }
-  function distribution(player, showActual) {
+  function distribution(player, showActual, unusedClasses = []) {
     return `<div class="diq-column-labels"><span>Defensive class</span><span>Expected pick</span>${showActual ? "<span>Actual time</span>" : ""}</div>${classes.map(name => {
       const prediction = player.prediction?.find(row => row.name === name);
       const actual = player.actual?.classes.find(row => row.name === name);
-      return `<div class="diq-class-row" data-class="${name}">${className(name)}<div>${prediction ? bar(prediction.percent) : '<span class="diq-na">No estimate</span>'}</div>${showActual ? `<div class="diq-actual">${actual ? bar(actual.percent, actual.seconds) : '<span class="diq-na">No record</span>'}</div>` : ""}</div>`;
+      return `<div class="diq-class-row" data-class="${name}"${unusedClasses.includes(name) ? ' data-unused="true" hidden' : ""}>${className(name)}<div>${prediction ? bar(prediction.percent) : '<span class="diq-na">No estimate</span>'}</div>${showActual ? `<div class="diq-actual">${actual ? bar(actual.percent, actual.seconds) : '<span class="diq-na">No record</span>'}</div>` : ""}</div>`;
     }).join("")}`;
   }
   function sampleNote(player, historical) {
@@ -89,19 +89,27 @@
   function outcomeTable(player) {
     return `<div class="diq-table-wrap"><table class="diq-table"><caption class="diq-results-note">Team results on this map, grouped by dominant defensive class</caption><thead><tr><th scope="col">Class</th><th scope="col">W–L–T</th><th scope="col">Win %</th><th scope="col">Matches</th></tr></thead><tbody>${player.outcomes.map(row => `<tr><th scope="row" class="diq-result-class" data-class="${row.name}">${labels[row.name]}</th><td>${row.wins}–${row.losses}–${row.ties}</td><td>${row.winPercent == null ? "—" : `${row.winPercent}%`}</td><td>${row.matches}${row.unknown ? ` (${row.unknown} unknown)` : ""}</td></tr>`).join("")}</tbody></table></div><p class="diq-results-note">Win % excludes ties and unknown results. Class switches, teammates, and opponents affect outcomes. Small samples are descriptive, not a class recommendation.</p>`;
   }
-  function playerCard(player) {
+  function playerCard(player, unusedClasses = []) {
     const actual = player.actual;
     const changed = player.topClass && actual?.dominant && player.topClass !== actual.dominant;
     const chance = actual?.dominant ? player.prediction?.find(row => row.name === actual.dominant)?.percent : null;
     const actualText = actual ? `${actual.dominant ? labels[actual.dominant] : "Mixed (tied time)"} · ${clock(actual.totalSeconds)} defensive-class time` : "No recorded defensive-class time";
     const tag = !actual ? "Unscored" : !player.prediction ? "No prior estimate" : !actual.dominant || !player.topClass ? "Mixed / tied" : changed ? "Different from expected" : "Matched expected";
-    return `<article class="diq-player"><header class="diq-player-header"><div><h4><a href="player.html?id=${encodeURIComponent(player.id)}">${escape(player.name)}</a></h4><p>${escape(actualText)}</p></div><span class="diq-tag ${changed ? "is-unexpected" : ""}">${tag}</span></header><div class="diq-match-distribution">${distribution(player, true)}</div><details class="diq-results-detail"><summary>History · ${player.samples.map} map / ${player.samples.overall} overall${chance != null ? ` · actual pick ${chance}% likely` : ""}</summary><p class="diq-sample">${escape(sampleNote(player, true))}${chance != null ? ` <strong>Actual dominant class had a ${chance}% estimated chance.</strong>` : ""}</p>${outcomeTable(player)}</details></article>`;
+    return `<article class="diq-player"><header class="diq-player-header"><div><h4><a href="player.html?id=${encodeURIComponent(player.id)}">${escape(player.name)}</a></h4><p>${escape(actualText)}</p></div><span class="diq-tag ${changed ? "is-unexpected" : ""}">${tag}</span></header><div class="diq-match-distribution">${distribution(player, true, unusedClasses)}</div><details class="diq-results-detail"><summary>History · ${player.samples.map} map / ${player.samples.overall} overall${chance != null ? ` · actual pick ${chance}% likely` : ""}</summary><p class="diq-sample">${escape(sampleNote(player, true))}${chance != null ? ` <strong>Actual dominant class had a ${chance}% estimated chance.</strong>` : ""}</p>${outcomeTable(player)}</details></article>`;
   }
   function renderMatch(data) {
     const comparable = data.players.filter(player => player.topClass && player.actual?.dominant);
     const matched = comparable.filter(player => player.topClass === player.actual.dominant).length;
     const coverage = data.players.filter(player => player.actual).length;
-    return `<header class="diq-result-heading"><div><h2>${escape(data.match.map || "Unknown map")}</h2><p>${escape(date(data.match.createdAt))} · ${escape(data.match.id)} · ${matched}/${comparable.length} scored picks matched · class records for ${coverage}/${data.players.length} players</p></div><a href="match.html?id=${encodeURIComponent(data.match.id)}">Open match details</a></header>${!coverage ? '<p class="diq-empty">This match has no linked defensive-class time records yet. Earlier predictions may still be available below; actual choices remain unscored.</p>' : ""}<div class="diq-team-grid">${["BLUE", "RED"].map(team => `<section class="diq-team ${team === "RED" ? "is-red" : ""}" aria-label="${team} team"><h3>${team === "BLUE" ? "Blue" : "Red"} team${data.match.winner === team ? " · Won" : data.match.winner === "TIE" ? " · Tie" : data.match.winner && ["BLUE", "RED"].includes(data.match.winner) ? " · Lost" : ""}</h3>${data.players.filter(player => player.team === team).map(playerCard).join("") || '<p class="diq-empty">No roster recorded.</p>'}</section>`).join("")}</div>`;
+    // Missing records do not establish zero use. Only hide with full roster coverage.
+    const unusedClasses = coverage === data.players.length && coverage > 0
+      ? classes.filter(name => data.players.every(player =>
+        player.actual.classes.some(row => row.name === name && row.seconds === 0)))
+      : [];
+    const visibilityControl = unusedClasses.length
+      ? `<label class="diq-unused-toggle"><input type="checkbox" id="show-unused-classes"> Show unused classes (${unusedClasses.map(name => labels[name]).join(", ")})<span>Expected odds unchanged</span></label>`
+      : "";
+    return `<header class="diq-result-heading"><div><h2>${escape(data.match.map || "Unknown map")}</h2><p>${escape(date(data.match.createdAt))} · ${escape(data.match.id)} · ${matched}/${comparable.length} scored picks matched · class records for ${coverage}/${data.players.length} players</p></div><a href="match.html?id=${encodeURIComponent(data.match.id)}">Open match details</a></header>${!coverage ? '<p class="diq-empty">This match has no linked defensive-class time records yet. Earlier predictions may still be available below; actual choices remain unscored.</p>' : ""}${visibilityControl}<div class="diq-team-grid" data-unused-count="${unusedClasses.length}" style="--diq-class-count:${classes.length - unusedClasses.length}">${["BLUE", "RED"].map(team => `<section class="diq-team ${team === "RED" ? "is-red" : ""}" aria-label="${team} team"><h3>${team === "BLUE" ? "Blue" : "Red"} team${data.match.winner === team ? " · Won" : data.match.winner === "TIE" ? " · Tie" : data.match.winner && ["BLUE", "RED"].includes(data.match.winner) ? " · Lost" : ""}</h3>${data.players.filter(player => player.team === team).map(player => playerCard(player, unusedClasses)).join("") || '<p class="diq-empty">No roster recorded.</p>'}</section>`).join("")}</div>`;
   }
   function renderPlayer(data) {
     const player = data.player;
@@ -183,6 +191,13 @@
     const map = el("map-select").value;
     if (!player || !map) { status("Choose both a player and a map.", true); return; }
     analyze(new URLSearchParams({ player, map }));
+  });
+  el("diq-results").addEventListener("change", event => {
+    if (event.target.id !== "show-unused-classes") return;
+    const show = event.target.checked;
+    const grid = el("diq-results").querySelector(".diq-team-grid");
+    grid.querySelectorAll('.diq-class-row[data-unused="true"]').forEach(row => { row.hidden = !show; });
+    grid.style.setProperty("--diq-class-count", show ? classes.length : classes.length - Number(grid.dataset.unusedCount));
   });
   el("diq-retry").addEventListener("click", () => retry?.());
   setMode(mode);
