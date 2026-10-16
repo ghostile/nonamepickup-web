@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="assets/css/defense-iq.css?v=20261016unused1">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Orbitron:wght@500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="assets/js/main.js?v=20261004nav1" defer></script>
-  <script src="assets/js/defense-iq.js?v=20261016unused1" defer></script>
+  <script src="assets/js/defense-iq.js?v=20261016nav1" defer></script>
 </head>
 <body class="compare-page defense-iq-page">
   <a href="#defense-main" class="diq-skip">Skip to Defense IQ</a>
@@ -28,10 +28,11 @@
         <a href="speedruns.html">Speedruns</a>
         <a href="live.html" class="nav-live">Live</a>
         <details class="nav-more">
-          <summary>More<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m4 6 4 4 4-4"/></svg></summary>
+          <summary class="nav-more-current">More<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m4 6 4 4 4-4"/></svg></summary>
           <div class="nav-more-links">
             <a href="analytics.html">Analytics</a>
             <a href="compare.html">Compare players</a>
+            <a href="defense-iq.html" aria-current="page">Defense IQ</a>
             <a href="kicked.html">Missed votes</a>
             <a href="coolest-dude.html">Community honors</a>
             <a href="mvp-breakdown.html">MVP breakdown</a>
@@ -70,15 +71,6 @@
       <p id="diq-status" class="diq-status" role="status" aria-live="polite">Loading available matches and players…</p>
       <button id="diq-retry" type="button" class="diq-secondary" hidden>Try again</button>
       <section id="diq-results" aria-label="Defense analysis" aria-busy="false"></section>
-      <details class="diq-method">
-        <summary>How to read Defense IQ</summary>
-        <div>
-          <p><strong>Expected pick</strong> estimates which class a player will spend the most recorded defensive-class time on. Each earlier match contributes one observation, favoring recent games with a 180-day half-life. Same-map history is blended with overall habits, using five prior observations; overall habits have one smoothing observation per class. These estimates have not been calibrated against future games.</p>
-          <p><strong>Actual choice</strong> shows the time split between HWGuy, Demoman, Soldier, and Engineer. Percentages exclude all other classes. A tie for most time is labeled mixed and excluded from prediction labels and class result buckets. Players without recorded defensive time remain unscored.</p>
-          <p><strong>Historical results</strong> are team wins, losses, and ties on this map when that class had the most defensive time. Win percentage excludes ties and unknown results. Match review uses only earlier history for both predictions and results. Mixed matches are excluded from class results.</p>
-          <p>Only completed 4v4 pickups and unambiguous player identities are included. Small samples can swing sharply. These records describe habits and team outcomes; they do not establish the best class or the cause of a loss. Ping and Elo are not model inputs.</p>
-        </div>
-      </details>
       <noscript><p class="diq-empty">Enable JavaScript to load class history and predictions.</p></noscript>
     </div>
   </main>

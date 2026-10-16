@@ -127,7 +127,7 @@
       const data = await fetchData(`api/defense-iq?${params}`, controller.signal);
       if (id !== requestId) return;
       el("diq-results").innerHTML = data.mode === "match" ? renderMatch(data) : renderPlayer(data);
-      status(data.mode === "match" ? "Pre-match estimates compared with recorded defensive-class time. Expand a player’s results for context." : "Estimated class habits and same-map team results. See the method below for sample limits.");
+      status(data.mode === "match" ? "Pre-match estimates compared with recorded defensive-class time. Expand a player’s results for context." : "Estimated class habits and same-map team results. Small samples can swing sharply.");
       if (updateUrl) history.replaceState(null, "", `${location.pathname}?${params}`);
     } catch (error) {
       if (error.name === "AbortError" || id !== requestId) return;
