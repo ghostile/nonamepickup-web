@@ -1,0 +1,79 @@
+.defense-iq-page{font-family:Inter,system-ui,sans-serif;color:#e8edff;--diq-muted:#a7b7ce;--diq-line:rgba(148,163,184,.2);--diq-panel:rgba(10,17,30,.94);--diq-hwguy:#fbbf24;--diq-demoman:#c4b5fd;--diq-soldier:#60a5fa;--diq-engineer:#6ee7b7}
+.defense-iq-page [hidden]{display:none!important}
+.defense-iq-page main{padding-top:34px;padding-bottom:60px}
+.diq-hero{display:flex;justify-content:space-between;align-items:center;gap:24px;margin-bottom:28px;padding:26px 28px;border:1px solid var(--diq-line);border-radius:16px;background:var(--diq-panel)}
+.diq-hero h1{margin:0;font:800 clamp(26px,3vw,40px)/1.2 Orbitron,Inter,sans-serif;letter-spacing:-.025em;color:#fff}
+.diq-hero p{margin:10px 0 0;color:var(--diq-muted);font-size:14px;line-height:1.6}
+.diq-preview{justify-self:end;white-space:nowrap;border:1px solid #39557a;border-radius:999px;padding:7px 12px;font-size:11px;color:#bfdbfe;background:#12243c}
+.diq-modes{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.defense-iq-page button,.defense-iq-page input,.defense-iq-page select{font:inherit}
+.diq-modes button,.diq-secondary{cursor:pointer;padding:11px 18px;border-radius:10px;border:1px solid var(--diq-line);background:#0e192b;color:var(--diq-muted);font-size:13px;font-weight:700}
+.diq-modes button[aria-pressed=true]{background:#1b3656;border-color:#60a5fa;color:#e4f0ff}
+.diq-modes button:hover,.diq-secondary:hover{background:#223550;color:#fff}
+.diq-controls{background:var(--diq-panel);border:1px solid var(--diq-line);border-radius:14px;padding:22px}
+.diq-form{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.diq-field{flex:1 1 180px;min-width:0}.diq-wide{flex-grow:2}
+.diq-field label{display:block;font-size:12px;font-weight:700;color:#c5d4eb;margin-bottom:8px}
+.diq-field input,.diq-field select{display:block;width:100%;min-width:0;height:46px;border:1px solid #3d506b;border-radius:9px;background:#08111f;color:#eef5ff;padding:0 12px;font-size:13px;color-scheme:dark}
+.diq-field input::placeholder{color:#94a6bf}
+.diq-primary{height:46px;border:1px solid #60a5fa;border-radius:9px;background:#22548d;color:#fff;font-size:13px;font-weight:750;cursor:pointer;padding:0 22px;white-space:nowrap}
+.diq-primary:hover{background:#2a65a5}.diq-primary:disabled{opacity:.5;cursor:wait}
+.diq-control-note{margin:14px 0 0;color:var(--diq-muted);font-size:12px;line-height:1.6}
+.diq-status{font-size:13px;line-height:1.6;color:var(--diq-muted);margin:20px 0;min-height:21px}
+.diq-status.is-error{color:#fda4af}.diq-secondary{margin:0 0 20px}
+.diq-result-heading{display:flex;justify-content:space-between;gap:16px;align-items:center;margin:30px 0 16px}
+.diq-result-heading h2{font:750 clamp(19px,2vw,25px)/1.4 Orbitron,Inter,sans-serif;margin:0;overflow-wrap:anywhere;color:#fff}
+.diq-result-heading p{font-size:12px;color:var(--diq-muted);margin:6px 0 0;line-height:1.6}
+.defense-iq-page main a{color:#93c5fd;text-underline-offset:3px}
+.diq-result-heading>a{font-size:12px;white-space:nowrap}
+.diq-team-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.diq-team{min-width:0}.diq-team>h3{color:#93c5fd;border-bottom:1px solid #395b82;font-size:14px;margin:0 0 14px;padding-bottom:12px}
+.diq-team.is-red>h3{color:#fda4af;border-color:#814251}
+.diq-player{background:var(--diq-panel);border:1px solid var(--diq-line);border-radius:14px;padding:22px;margin-bottom:16px;min-width:0}
+.diq-player-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px}
+.diq-player-header h4{font-size:17px;line-height:1.4;margin:0;overflow-wrap:anywhere}
+.diq-player-header h4 a{color:#edf5ff;text-decoration:none}.diq-player-header h4 a:hover{text-decoration:underline}
+.diq-player-header p{margin:6px 0 0;font-size:12px;line-height:1.6;color:var(--diq-muted)}
+.diq-tag{font-size:11px;color:#c9daee;background:#16243a;border:1px solid #354862;border-radius:6px;padding:5px 7px;white-space:nowrap}
+.diq-tag.is-unexpected{color:#fcd9a2;background:#35291a;border-color:#796039}
+.diq-column-labels{display:grid;grid-template-columns:minmax(95px,1fr) minmax(105px,1.25fr) minmax(105px,1.25fr);gap:12px;font-size:11px;color:var(--diq-muted);padding-bottom:10px;border-bottom:1px solid var(--diq-line)}
+.diq-class-row{display:grid;grid-template-columns:minmax(95px,1fr) minmax(105px,1.25fr) minmax(105px,1.25fr);gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid rgba(148,163,184,.1);font-size:12px}
+.diq-class-name{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--class-color);white-space:nowrap}
+.diq-class-name img{width:24px;height:28px;object-fit:contain}
+.diq-class-row[data-class=hwguy],.diq-result-class[data-class=hwguy]{--class-color:var(--diq-hwguy)}
+.diq-class-row[data-class=demoman],.diq-result-class[data-class=demoman]{--class-color:var(--diq-demoman)}
+.diq-class-row[data-class=soldier],.diq-result-class[data-class=soldier]{--class-color:var(--diq-soldier)}
+.diq-class-row[data-class=engineer],.diq-result-class[data-class=engineer]{--class-color:var(--diq-engineer)}
+.diq-bar-value{display:flex;justify-content:space-between;gap:5px;font-variant-numeric:tabular-nums;line-height:1.5}
+.diq-bar-value small{color:var(--diq-muted);font-size:10px}
+.diq-track{height:5px;margin-top:5px;border-radius:3px;background:#263349;overflow:hidden}
+.diq-track span{display:block;height:100%;background:var(--class-color);border-radius:3px}
+.diq-actual .diq-track span{opacity:.7}
+.diq-na{color:var(--diq-muted);font-size:11px}
+.diq-sample{font-size:12px;line-height:1.7;color:var(--diq-muted);margin:14px 0 0}
+.diq-sample strong{color:#e5edf9;font-weight:600}
+.diq-empty{background:var(--diq-panel);border:1px solid var(--diq-line);border-radius:12px;padding:24px;color:var(--diq-muted);font-size:14px;line-height:1.7}
+.diq-results-detail{margin-top:16px;border-top:1px solid var(--diq-line);padding-top:14px}
+.diq-results-detail summary,.diq-method summary{cursor:pointer;color:#d4e2f5;font-size:13px;font-weight:650;line-height:1.6}
+.diq-table-wrap{overflow-x:auto;margin-top:14px}
+.diq-table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums;text-align:left}
+.diq-table th{font-size:11px;font-weight:600;color:var(--diq-muted)}
+.diq-table th,.diq-table td{padding:12px 10px;border-bottom:1px solid var(--diq-line);white-space:nowrap}
+.diq-table td:first-child,.diq-table th:first-child{padding-left:0}
+.diq-result-class{color:var(--class-color);font-weight:650}
+.diq-results-note{font-size:11px;color:var(--diq-muted);line-height:1.7;margin:12px 0 0}
+.diq-single{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px}
+.diq-single .diq-player{margin:0}.diq-single h3{margin:0 0 8px;font-size:17px}
+.diq-single .diq-class-row,.diq-single .diq-column-labels{grid-template-columns:minmax(105px,1fr) minmax(110px,2fr)}
+.diq-recent{margin-top:24px}.diq-recent h3{font-size:17px;margin:0}
+.diq-method{margin-top:30px;border:1px solid var(--diq-line);border-radius:12px;background:var(--diq-panel);padding:18px 22px}
+.diq-method p{max-width:78ch;color:var(--diq-muted);font-size:13px;line-height:1.8;margin:14px 0}
+.defense-iq-page :focus-visible{outline:2px solid #93c5fd;outline-offset:4px}
+.defense-iq-page ::selection{background:#285b8e;color:#fff}
+.diq-skip{position:fixed;left:16px;top:-80px;z-index:1000;padding:12px;background:#12243c;color:white}.diq-skip:focus{top:12px}
+#diq-results[aria-busy=true]{opacity:.55}
+@media(min-width:1600px){.diq-team-grid{gap:28px}.diq-player{padding:26px}.diq-class-row,.diq-column-labels{font-size:13px}}
+@media(max-width:900px){.defense-iq-page .compare-header.diq-hero{grid-template-columns:minmax(0,1fr)!important;gap:14px!important}.diq-preview{justify-self:start}}
+@media(max-width:1000px){.diq-team-grid,.diq-single{grid-template-columns:1fr}}
+@media(max-width:600px){.defense-iq-page main{width:calc(100% - 24px);padding-top:20px}.diq-hero{padding:20px;align-items:flex-start;flex-direction:column;gap:12px}.diq-controls{padding:16px}.diq-form{gap:14px}.diq-field{flex-basis:100%}.diq-primary{width:100%}.diq-player{padding:16px}.diq-player-header{flex-wrap:wrap}.diq-class-row,.diq-column-labels{grid-template-columns:88px minmax(65px,1fr) minmax(65px,1fr);gap:8px}.diq-class-name{gap:5px;font-size:11px}.diq-class-name img{width:19px;height:24px}.diq-bar-value small{display:none}.diq-result-heading{align-items:flex-start;flex-direction:column}.diq-method{padding:16px}.diq-preview{font-size:10px}}
+@media(prefers-reduced-motion:reduce){.defense-iq-page,.defense-iq-page::before,.defense-iq-page::after{animation:none!important}}

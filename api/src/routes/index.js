@@ -18,6 +18,7 @@ const { createSpeedrunComparisonsRouter } = require("./speedrunComparisons");
 const { createShadowEloRouter } = require("./shadowElo");
 const { createCoolestDudeRouter } = require("./coolestDude");
 const { createSpellingRouter } = require("./spelling");
+const { createDefenseIqRouter } = require("./defenseIq");
 
 function registerRoutes(app, {
   leaderboardHandler,
@@ -60,6 +61,7 @@ app.use("/api", createSystemRouter({
 
 // Leaderboard
 app.get("/api/leaderboard", leaderboardHandler);
+app.use("/api", createDefenseIqRouter({ db, cleanString, sendError, logRouteError }));
 
 // Matches
 app.use("/api", createMatchesRouter({
