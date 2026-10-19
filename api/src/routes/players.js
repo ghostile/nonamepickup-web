@@ -1410,6 +1410,11 @@ router.get("/player/:discordId/v3",(req,res)=>{
           losses,
           ties,
           games,
+          history:player.hide_elo?[]:historyRows.map(row=>({
+            elo:row.after,
+            delta:row.delta,
+            ts:row.ts
+          })),
           record:`${wins}-${losses}-${ties}`,
           win_pct:decided?Math.round((wins/decided)*100):0
         },

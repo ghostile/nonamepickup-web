@@ -493,11 +493,11 @@ async function loadPlayerV3(){
   const mvpPct=ratings.games>0? Math.round((mvpGames/ratings.games)*100): 0;
   const mvpEl=document.getElementById("kpi-mvps");
   if(mvpEl)mvpEl.innerHTML = `${fmt(mvpGames)} <span class="kpi-subpct">· ${mvpPct}% of games</span>`;
-  const eloValues=recentRows
-    .map(m=>({elo:Number(m.after??m.rating),delta:Number(m.delta??0),ts:Number(m.created_at||0)}))
-    .filter(v=>Number.isFinite(v.elo))
-    .reverse();
+  const eloValues=(Array.isArray(ratings.history)?ratings.history:[])
+    .filter(point=>point.elo!=null&&Number.isFinite(Number(point.elo)))
+    .map(point=>({elo:Number(point.elo),delta:Number(point.delta??0),ts:Number(point.ts||0)}));
 
+  setText("elo-chart-label",ratings.hidden?"Hidden":"All Matches · "+fmt(eloValues.length));
   renderEloChartV3(eloValues,!!ratings.hidden);
   populateGranularMapSelect(recentRows);
   populateGranularMatchSelect(recentRows);
