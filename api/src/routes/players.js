@@ -1199,14 +1199,14 @@ router.get("/player/:discordId/v3",(req,res)=>{
       SELECT
         COUNT(DISTINCT rc.match_id) AS games,
         SUM(CASE
-          WHEN m.winner='BLUE' AND EXISTS(SELECT 1 FROM json_each(m.blue_ids) WHERE CAST(value AS TEXT)=CAST(rc.player_id AS TEXT)) THEN 1
-          WHEN m.winner='RED' AND EXISTS(SELECT 1 FROM json_each(m.red_ids) WHERE CAST(value AS TEXT)=CAST(rc.player_id AS TEXT)) THEN 1
+          WHEN UPPER(m.winner)='BLUE' AND EXISTS(SELECT 1 FROM json_each(m.blue_ids) WHERE CAST(value AS TEXT)=CAST(rc.player_id AS TEXT)) THEN 1
+          WHEN UPPER(m.winner)='RED' AND EXISTS(SELECT 1 FROM json_each(m.red_ids) WHERE CAST(value AS TEXT)=CAST(rc.player_id AS TEXT)) THEN 1
           ELSE 0 END) AS wins,
         SUM(CASE
-          WHEN m.winner='BLUE' AND EXISTS(SELECT 1 FROM json_each(m.red_ids) WHERE CAST(value AS TEXT)=CAST(rc.player_id AS TEXT)) THEN 1
-          WHEN m.winner='RED' AND EXISTS(SELECT 1 FROM json_each(m.blue_ids) WHERE CAST(value AS TEXT)=CAST(rc.player_id AS TEXT)) THEN 1
+          WHEN UPPER(m.winner)='BLUE' AND EXISTS(SELECT 1 FROM json_each(m.red_ids) WHERE CAST(value AS TEXT)=CAST(rc.player_id AS TEXT)) THEN 1
+          WHEN UPPER(m.winner)='RED' AND EXISTS(SELECT 1 FROM json_each(m.blue_ids) WHERE CAST(value AS TEXT)=CAST(rc.player_id AS TEXT)) THEN 1
           ELSE 0 END) AS losses,
-        SUM(CASE WHEN m.winner='TIE' THEN 1 ELSE 0 END) AS ties
+        SUM(CASE WHEN UPPER(m.winner)='TIE' THEN 1 ELSE 0 END) AS ties
       FROM rating_changes rc
       JOIN matches m ON m.match_id=rc.match_id
       WHERE rc.player_id=? AND m.status='completed'
@@ -1219,7 +1219,7 @@ router.get("/player/:discordId/v3",(req,res)=>{
         rc.after,
         rc.delta,
         rc.ts,
-        m.winner,
+        UPPER(m.winner) AS winner,
         m.blue_ids,
         m.red_ids
       FROM rating_changes rc
