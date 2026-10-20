@@ -153,6 +153,7 @@ app.use("/api", createQueueRouter({
   logRouteError
 }));
 app.use("/api", createKickedRouter({
+  db,
   kickedFile: KICKED_FILE,
   fs,
   cleanString,

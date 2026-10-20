@@ -17,7 +17,7 @@ function parseTimestamp(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function buildKickedPayload(rows, cleanString) {
+function buildKickedPayload(rows, cleanString, playerNames = new Map()) {
   const events = [];
   const offenders = new Map();
 
@@ -34,7 +34,7 @@ function buildKickedPayload(rows, cleanString) {
 
     for (let index = 0; index < playerCount; index += 1) {
       const id = ids[index] || `name:${String(names[index] || "unknown").toLowerCase()}`;
-      const name = names[index] || ids[index] || "Unknown";
+      const name = cleanString(playerNames.get(id), 200) || names[index] || ids[index] || "Unknown";
       if (eventIds.has(id)) continue;
       eventIds.add(id);
 
@@ -102,6 +102,7 @@ function buildKickedPayload(rows, cleanString) {
 }
 
 function createKickedRouter({
+  db,
   kickedFile,
   fs,
   cleanString,
@@ -115,8 +116,13 @@ function createKickedRouter({
       const rows = JSON.parse(raw || "[]");
       if (!Array.isArray(rows)) throw new Error("kicked_not_array");
 
+      const playerNames = new Map(
+        db.prepare("SELECT player_id, display_name FROM ratings").all()
+          .map(player => [String(player.player_id), player.display_name])
+      );
+
       res.setHeader("Cache-Control", "public, max-age=5, stale-while-revalidate=15");
-      res.json(buildKickedPayload(rows, cleanString));
+      res.json(buildKickedPayload(rows, cleanString, playerNames));
     } catch (error) {
       logRouteError("[/api/kicked]", error);
       res.status(503).json({
