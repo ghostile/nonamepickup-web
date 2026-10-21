@@ -14,7 +14,7 @@
 
   <link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
   <link rel="shortcut icon" href="/assets/images/favicon.ico">
-  <link rel="stylesheet" href="assets/css/app.css?v=20261004nav1">
+  <link rel="stylesheet" href="assets/css/app.css?v=20261011universalscale1">
   <link rel="stylesheet" href="assets/css/style.css?v=20260618i">
   <link rel="stylesheet" href="assets/css/speedruns.css?v=20260910leaderboardfit2">
   <script src="assets/js/main.js?v=20261004nav1" defer></script>
@@ -42,6 +42,7 @@
           <div class="nav-more-links">
             <a href="analytics.html">Analytics</a>
             <a href="compare.html">Compare players</a>
+            <a href="defense-iq.html">Defense IQ</a>
             <a href="kicked.html">Missed votes</a>
             <a href="coolest-dude.html">Community honors</a>
             <a href="mvp-breakdown.html">MVP breakdown</a>
@@ -57,26 +58,40 @@
 
   <main class="speedrun-main">
     <section class="speedrun-shell">
-      <div class="speedrun-hero">
-        <div class="speedrun-hero-copy">
-          <p class="speedrun-kicker">CONC ARCHIVE</p>
-          <h1>Speedruns</h1>
-          <p class="speedrun-subtitle">Map records, runner activity, and current world records from the NoName timer.</p>
-          <p id="speedrun-status" class="speedrun-updated">Loading speedrun records...</p>
+      <section class="speedrun-hub-hero" aria-labelledby="speedrun-title">
+        <img class="speedrun-hub-hero-image" src="assets/images/maps/NoMap.webp" alt="" fetchpriority="high">
+        <div class="speedrun-hub-hero-shade" aria-hidden="true"></div>
+        <div class="speedrun-hub-hero-copy">
+          <p id="speedrun-status" class="speedrun-map-v2-breadcrumb">Loading speedrun records...</p>
+          <h1 id="speedrun-title">Speedruns</h1>
+          <p class="speedrun-subtitle">World records, active runners, and the latest competitive runs.</p>
+          <div class="speedrun-hub-actions">
+            <a class="speedrun-map-v2-button primary" href="speedrun-maps.html">Explore Maps</a>
+            <a class="speedrun-map-v2-button" href="#recent-runs">Latest Runs <span aria-hidden="true">↓</span></a>
+          </div>
         </div>
-
-        <section class="speedrun-summary" aria-label="Speedrun summary">
-          <article class="matches2-kpi"><span>Maps</span><strong id="sr-maps">-</strong></article>
-          <article class="matches2-kpi"><span>Enabled</span><strong id="sr-enabled">-</strong></article>
-          <article class="matches2-kpi"><span>Runs</span><strong id="sr-runs">-</strong></article>
-          <article class="matches2-kpi"><span>Runners</span><strong id="sr-runners">-</strong></article>
-          <article class="matches2-kpi"><span>Records</span><strong id="sr-records">-</strong></article>
+        <section class="speedrun-hub-hero-stats" aria-label="Speedrun summary">
+          <article><span>Available maps</span><strong id="sr-enabled">-</strong></article>
+          <article><span>Completed runs</span><strong id="sr-runs">-</strong></article>
+          <article><span>Unique runners</span><strong id="sr-runners">-</strong></article>
+          <article><span>Current records</span><strong id="sr-records">-</strong></article>
         </section>
-      </div>
+      </section>
 
       <div id="speedrun-error" class="speedrun-error" hidden></div>
 
-      <div class="speedrun-home-grid">
+      <section class="speedrun-featured-section" aria-labelledby="sr-featured-heading">
+        <div class="speedrun-section-heading">
+          <div>
+            <span class="speedrun-panel-icon gold" aria-hidden="true">◆</span>
+            <div><h2 id="sr-featured-heading">Current World Records</h2><p>Five maps with active NoName world records.</p></div>
+          </div>
+          <a class="speedrun-text-action" href="speedrun-maps.html">Browse every map <span aria-hidden="true">→</span></a>
+        </div>
+        <div id="sr-featured-records" class="speedrun-featured-grid" aria-live="polite"></div>
+      </section>
+
+      <div class="speedrun-home-grid speedrun-discovery-grid">
         <section class="speedrun-hub-panel speedrun-maps-panel" aria-labelledby="sr-maps-heading">
           <div class="speedrun-hub-heading speedrun-maps-heading">
             <div class="speedrun-hub-title">
@@ -133,18 +148,24 @@
         </aside>
       </div>
 
-      <section class="speedrun-lower-grid" aria-label="Speedrun activity">
-        <section class="speedrun-hub-panel" aria-labelledby="sr-recent-heading">
+      <section class="speedrun-lower-grid speedrun-activity-grid" aria-label="Speedrun activity">
+        <section id="recent-runs" class="speedrun-hub-panel speedrun-recent-panel" aria-labelledby="sr-recent-heading">
           <div class="speedrun-hub-heading compact">
             <div class="speedrun-hub-title">
               <span class="speedrun-panel-icon" aria-hidden="true">◷</span>
               <div><h2 id="sr-recent-heading">Recent Runs</h2><p>Latest timer completions</p></div>
             </div>
           </div>
-          <div id="sr-recent-runs" class="speedrun-dashboard-list"></div>
+          <div class="speedrun-table-wrap speedrun-hub-table-wrap">
+            <table class="speedrun-table speedrun-hub-runs-table">
+              <thead><tr><th>Map</th><th>Player</th><th>Class</th><th>Time</th><th>Date</th><th>Replay</th></tr></thead>
+              <tbody id="sr-recent-runs"></tbody>
+            </table>
+          </div>
+          <div class="speedrun-panel-footer"><a class="speedrun-text-action" href="speedrun-maps.html">Explore map activity <span aria-hidden="true">→</span></a></div>
         </section>
 
-        <section class="speedrun-hub-panel" aria-labelledby="sr-runners-heading">
+        <section class="speedrun-hub-panel speedrun-runners-panel" aria-labelledby="sr-runners-heading">
           <div class="speedrun-hub-heading compact">
             <div class="speedrun-hub-title">
               <span class="speedrun-panel-icon gold" aria-hidden="true">♛</span>
@@ -166,5 +187,8 @@
       </section>
     </section>
   </main>
+  <!-- Cloudflare Web Analytics -->
+  <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "a027c9b6496948cdbc21311387c802d5"}'></script>
+  <!-- End Cloudflare Web Analytics -->
 </body>
 </html>

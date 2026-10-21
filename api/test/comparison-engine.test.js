@@ -15,6 +15,9 @@ const {
   createSpeedrunComparisonsRouter
 } = require("../src/routes/speedrunComparisons");
 const {
+  concLimitFields
+} = require("../src/routes/speedruns");
+const {
   CLASS_NAMES,
   recordClassName,
   formatTimeMs,
@@ -131,6 +134,21 @@ function fixtureRows() {
     })
   ];
 }
+
+test("speedrun API preserves populated, zero, and unrecorded concussion limits", () => {
+  assert.deepEqual(concLimitFields({ conc_limit: 4 }), {
+    concLimit: 4,
+    conc_limit: 4
+  });
+  assert.deepEqual(concLimitFields({ conc_limit: 0 }), {
+    concLimit: 0,
+    conc_limit: 0
+  });
+  assert.deepEqual(concLimitFields({ conc_limit: null }), {
+    concLimit: null,
+    conc_limit: null
+  });
+});
 
 function serviceFixture(options = {}) {
   let snapshotQueries = 0;

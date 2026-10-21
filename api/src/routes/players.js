@@ -1199,14 +1199,14 @@ router.get("/player/:discordId/v3",(req,res)=>{
       SELECT
         COUNT(DISTINCT rc.match_id) AS games,
         SUM(CASE
-          WHEN m.winner='BLUE' AND EXISTS(SELECT 1 FROM json_each(m.blue_ids) WHERE CAST(value AS TEXT)=CAST(rc.player_id AS TEXT)) THEN 1
-          WHEN m.winner='RED' AND EXISTS(SELECT 1 FROM json_each(m.red_ids) WHERE CAST(value AS TEXT)=CAST(rc.player_id AS TEXT)) THEN 1
+          WHEN UPPER(m.winner)='BLUE' AND EXISTS(SELECT 1 FROM json_each(m.blue_ids) WHERE CAST(value AS TEXT)=CAST(rc.player_id AS TEXT)) THEN 1
+          WHEN UPPER(m.winner)='RED' AND EXISTS(SELECT 1 FROM json_each(m.red_ids) WHERE CAST(value AS TEXT)=CAST(rc.player_id AS TEXT)) THEN 1
           ELSE 0 END) AS wins,
         SUM(CASE
-          WHEN m.winner='BLUE' AND EXISTS(SELECT 1 FROM json_each(m.red_ids) WHERE CAST(value AS TEXT)=CAST(rc.player_id AS TEXT)) THEN 1
-          WHEN m.winner='RED' AND EXISTS(SELECT 1 FROM json_each(m.blue_ids) WHERE CAST(value AS TEXT)=CAST(rc.player_id AS TEXT)) THEN 1
+          WHEN UPPER(m.winner)='BLUE' AND EXISTS(SELECT 1 FROM json_each(m.red_ids) WHERE CAST(value AS TEXT)=CAST(rc.player_id AS TEXT)) THEN 1
+          WHEN UPPER(m.winner)='RED' AND EXISTS(SELECT 1 FROM json_each(m.blue_ids) WHERE CAST(value AS TEXT)=CAST(rc.player_id AS TEXT)) THEN 1
           ELSE 0 END) AS losses,
-        SUM(CASE WHEN m.winner='TIE' THEN 1 ELSE 0 END) AS ties
+        SUM(CASE WHEN UPPER(m.winner)='TIE' THEN 1 ELSE 0 END) AS ties
       FROM rating_changes rc
       JOIN matches m ON m.match_id=rc.match_id
       WHERE rc.player_id=? AND m.status='completed'
@@ -1219,19 +1219,21 @@ router.get("/player/:discordId/v3",(req,res)=>{
         rc.after,
         rc.delta,
         rc.ts,
-        m.winner,
+        UPPER(m.winner) AS winner,
         m.blue_ids,
         m.red_ids
       FROM rating_changes rc
       LEFT JOIN matches m ON m.match_id=rc.match_id
       WHERE rc.player_id=?
         AND m.status='completed'
-      ORDER BY rc.ts ASC
+      ORDER BY rc.ts ASC, rc.match_id ASC
     `).all(discordId);
 
     let peakElo=Number(player.rating||0);
     let bestStreak=0;
     let currentStreak=0;
+    let worstStreak=0;
+    let currentLossStreak=0;
     let firstMatchTs=null;
     let lastMatchTs=null;
 
@@ -1252,8 +1254,14 @@ router.get("/player/:discordId/v3",(req,res)=>{
       if(team&&row.winner===team){
         currentStreak++;
         bestStreak=Math.max(bestStreak,currentStreak);
-      }else if(row.winner&&row.winner!=="TIE"){
+        currentLossStreak=0;
+      }else if(team&&(row.winner==="BLUE"||row.winner==="RED")){
         currentStreak=0;
+        currentLossStreak++;
+        worstStreak=Math.max(worstStreak,currentLossStreak);
+      }else if(row.winner!=="TIE"){
+        currentStreak=0;
+        currentLossStreak=0;
       }
     }
 
@@ -1343,7 +1351,7 @@ router.get("/player/:discordId/v3",(req,res)=>{
       try{
         const mvpRow=db.prepare(`
           SELECT COUNT(DISTINCT match_id) AS mvp_games
-          FROM match_round_mvps
+          FROM canonical_match_mvps
           WHERE mvp_player_key IN (${placeholders(steamIds)})
              OR steam_id IN (${placeholders(steamIds)})
         `).get(...steamIds,...steamIds);
@@ -1396,11 +1404,17 @@ router.get("/player/:discordId/v3",(req,res)=>{
           },
           peak_elo:peakElo,
           best_streak:bestStreak,
+          worst_streak:worstStreak,
           pugs_per_week:pugsPerWeek,
           wins,
           losses,
           ties,
           games,
+          history:player.hide_elo?[]:historyRows.map(row=>({
+            elo:row.after,
+            delta:row.delta,
+            ts:row.ts
+          })),
           record:`${wins}-${losses}-${ties}`,
           win_pct:decided?Math.round((wins/decided)*100):0
         },
@@ -1480,7 +1494,7 @@ router.get("/player/:id/recent", (req, res) => {
         const ids = steamIds.map(() => "?").join(",");
         mvpMatchIds = new Set(db.prepare(`
           SELECT DISTINCT match_id
-          FROM match_round_mvps
+          FROM canonical_match_mvps
           WHERE mvp_player_key IN (${ids}) OR steam_id IN (${ids})
         `).all(...steamIds, ...steamIds).map(row => String(row.match_id)));
       } catch (mvpError) {

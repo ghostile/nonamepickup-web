@@ -1,7 +1,7 @@
 "use strict";
 
 const nn = window.nnHelpers || {};
-const matchFormatSeconds = nn.formatSeconds || (s => `${Number(s || 0)}s`);
+const matchFormatSeconds = s => s == null ? "—" : (nn.formatSeconds ? nn.formatSeconds(s) : `${Number(s)}s`);
 const matchNormName = nn.normName || (v => String(v || "").toLowerCase().replace(/[^a-z0-9]/g, ""));
 const matchWeaponName = nn.weaponName || (v => v);
 const pageSupporterBadge = nn.supporterBadge || (() => "");
@@ -9,8 +9,8 @@ const pageSupporterBadge = nn.supporterBadge || (() => "");
 function qs(id){return document.getElementById(id);}
 const matchEscapeHtml=window.nnHelpers?.escapeHtml||window.escapeHtml;
 const matchEscapeAttr=window.nnHelpers?.escapeAttr||window.escapeAttr;
-function fmt(n){const v=Number(n||0);return Number.isFinite(v)?v.toLocaleString():"-";}
-function formatDate(ts){const d=new Date(Number(ts||0)*1000);if(!Number.isFinite(d.getTime()))return"-";return d.toLocaleString([], {month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"});}
+function fmt(n){if(n==null||n==="")return"—";const v=Number(n);return Number.isFinite(v)?v.toLocaleString():"—";}
+function formatDate(ts){if(ts==null||Number(ts)<=0)return"—";const d=new Date(Number(ts)*1000);if(!Number.isFinite(d.getTime()))return"—";return d.toLocaleString([], {month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"});}
 
 function className(s){s=String(s||"unknown");return s.charAt(0).toUpperCase()+s.slice(1);}
 function deltaText(d){d=Number(d||0);return d>0?"+"+d:d<0?String(d):"-";}
@@ -39,13 +39,10 @@ function renderMatch(m){
   const blue=m.blueTeam||[];
   const red=m.redTeam||[];
   const players=m.player_stats||[];
-  const classes=m.class_stats||[];
-  const weapons=m.weapon_stats||[];
   const rounds=Array.isArray(m.rounds)?m.rounds:[];
   const roundPlayerStats=Array.isArray(m.round_player_stats)?m.round_player_stats:[];
   const roundMvps=Array.isArray(m.round_mvps)?m.round_mvps:[];
   const matchMvps=Array.isArray(m.match_mvps)?m.match_mvps:[];
-  const capTimeline=Array.isArray(m.capTimeline)?m.capTimeline:[];
   const roundSections=rounds.length||roundPlayerStats.length
     ?renderRoundSections(rounds,roundPlayerStats,roundMvps,blue,red,players)
     :"";
@@ -62,8 +59,10 @@ function renderMatch(m){
           <h1 class="match-title">${escapeHtml(m.id||m.match_id||"-")}</h1>
           <div class="match-meta">
             <span>${escapeHtml(formatDate(m.created_at))}</span>
+            <span>${escapeHtml(mapName)}</span>
             <span>${escapeHtml(String(m.status||"-").toUpperCase())}</span>
-            <span>Winner: ${escapeHtml(String(m.winner||"-"))}</span>
+            <span>Winner: ${isBlueWinner(m)?"Team 1":isRedWinner(m)?"Team 2":"—"}</span>
+            ${rounds.length?`<span>Duration: ${matchFormatSeconds(rounds.every(r=>r.duration_seconds!=null&&Number.isFinite(Number(r.duration_seconds)))?rounds.reduce((sum,r)=>sum+Number(r.duration_seconds),0):null)}</span>`:""}
           </div>
         </div>
 
@@ -75,9 +74,9 @@ function renderMatch(m){
           <div class="score-content">
             <div class="score-map">${escapeHtml(mapName)}</div>
             <div class="score-row">
-              <div class="score-team score-blue ${isBlueWinner(m)?"winner":""}"><span>Team 1</span><strong>${Number(m.score_blue??0)}</strong></div>
+              <div class="score-team score-blue ${isBlueWinner(m)?"winner":""}"><span>Team 1</span><strong>${fmt(m.score_blue)}</strong></div>
               <div class="score-vs">VS</div>
-              <div class="score-team score-red ${isRedWinner(m)?"winner":""}"><span>Team 2</span><strong>${Number(m.score_red??0)}</strong></div>
+              <div class="score-team score-red ${isRedWinner(m)?"winner":""}"><span>Team 2</span><strong>${fmt(m.score_red)}</strong></div>
             </div>
             ${renderMatchMvp(matchMvps)}
           </div>
@@ -91,28 +90,23 @@ function renderMatch(m){
       <a href="matches.html">Back to Matches</a>
     </div>
 
-    ${renderCapTimelineCard(capTimeline)}
+    <div class="rounds-layout">${roundSections}</div>
 
-    ${renderMatchMvpsCard(matchMvps,m.nn_mvp)}
-
-    ${roundSections}
-
-    <div class="match-card">
-      <h2>Player Stats</h2>
-      <div class="player-teams-grid">
-        ${renderPlayerTeam("Team 1",blue,players,classes,weapons,"blue")}
-        ${renderPlayerTeam("Team 2",red,players,classes,weapons,"red")}
-      </div>
-    </div>
+    <div id="match-analytics"></div>
   `;
 
 	if (typeof window.setMapImageFromName === "function") {
 	  window.setMapImageFromName(qs("match-map-image"), mapName, {
 		containerSelector: ".match-map-wrap",
-		fallbackSrc: "assets/images/maps/NoMap.webp"
+		fallbackSrc: "assets/images/maps/NoMap.webp",
+		onLoad: (_loadedMap, src) => {
+		  if (qs("match-map-image")?.src === src && !src.includes("/NoMap.webp")) {
+		    root.querySelector(".match-top-grid").style.setProperty("--page-hero-image", `url(${JSON.stringify(src)})`);
+		  }
+		}
 	  });
 	}
-	  bindRoundTabs(root);
+	  window.matchDashboard.mount(qs("match-analytics"),m);
 	}
 
 function playerKeys(teamPlayer,stats){
@@ -132,9 +126,8 @@ function findStatsForPlayer(statsRows,teamPlayer){
 
   return statsRows.find(s=>
     keys.includes(String(s.player_key||"")) ||
-    keys.includes(String(s.steam_id||"")) ||
-    String(s.display_name||"")===name
-  ) || null;
+    keys.includes(String(s.steam_id||""))
+  ) || statsRows.find(s=>name&&matchNormName(s.display_name)===matchNormName(name)) || null;
 }
 
 function rowsForPlayer(rows,teamPlayer,stats){
@@ -142,14 +135,13 @@ function rowsForPlayer(rows,teamPlayer,stats){
   const name=String(teamPlayer.name||teamPlayer.display_name||"");
   const statName=String(stats.display_name||"");
 
-  return rows.filter(r=>
+  const identified=rows.filter(r=>
     keys.includes(String(r.player_key||"")) ||
-    keys.includes(String(r.steam_id||"")) ||
-    String(r.display_name||"")===name ||
-    String(r.display_name||"")===statName ||
-    matchNormName(r.display_name)===matchNormName(name) ||
-    matchNormName(r.display_name)===matchNormName(statName)
+    keys.includes(String(r.steam_id||""))
   );
+  return identified.length?identified:rows.filter(r=>
+    (name&&matchNormName(r.display_name)===matchNormName(name)) ||
+    (statName&&matchNormName(r.display_name)===matchNormName(statName)));
 }
 
 function normalizeRoundTeam(value){
@@ -298,9 +290,9 @@ function renderMvpComponent(label,value,tooltip,extraClass=""){
   `;
 }
 
-function renderNnMvpBox(nnMvp){
+function renderNnMvpBox(nnMvp,title="NoName MVP"){
   if(!nnMvp||nnMvp.available===false||!nnMvp.winner){
-    return renderUnavailableMvp("NoName MVP","NN MVP unavailable");
+    return renderUnavailableMvp(title,"NN MVP unavailable");
   }
 
   const winner=nnMvp.winner;
@@ -313,7 +305,7 @@ function renderNnMvpBox(nnMvp){
     <article class="match-mvp-box noname">
       <div class="match-mvp-box-head">
         ${renderMvpBadge()}
-        <span>NoName MVP</span>
+        <span>${escapeHtml(title)}</span>
       </div>
       <div class="match-mvp-name">${escapeHtml(winner.display_name||winner.player_key||winner.steam_id||"Unknown")}</div>
       <div class="match-mvp-score" tabindex="0" title="${escapeAttr(NN_MVP_TOOLTIPS.score)}" aria-label="${escapeAttr(`Score ${scoreText}. ${NN_MVP_TOOLTIPS.score}`)}">Score <strong>${escapeHtml(scoreText)}</strong></div>
@@ -329,6 +321,21 @@ function renderNnMvpBox(nnMvp){
         </ul>
       `:""}
     </article>
+  `;
+}
+
+function renderCanonicalMvpCard(mvpSource,nnMvp){
+  if(mvpSource!=="nn")return"";
+  return `
+    <section class="match-card match-mvps-card agrees">
+      <div class="match-mvps-head">
+        <h2>Game MVP</h2>
+        <span class="match-mvps-status agree">NN scoring</span>
+      </div>
+      <div class="match-mvps-grid">
+        ${renderNnMvpBox(nnMvp,"Game MVP")}
+      </div>
+    </section>
   `;
 }
 
@@ -362,11 +369,11 @@ function capTeamLabel(team){
   return String(team||"Team");
 }
 
-function renderCapTimelineCard(capTimeline){
+function renderCapTimelineCard(capTimeline,match={}){
   if(!Array.isArray(capTimeline)||!capTimeline.length)return"";
 
-  const maxSeconds=15*60;
-  const events=[...capTimeline].sort((a,b)=>Number(a.time_seconds||0)-Number(b.time_seconds||0));
+  const {rounds,events,extent:maxSeconds}=window.nnCaptureTimeline.build(match,capTimeline);
+  if(!rounds.length)return '<section class="match-card cap-timeline-card"><h2>Flag Pace</h2><p>Round-relative times unavailable: recorded round boundaries are missing.</p></section>';
 
   return `
     <section class="match-card cap-timeline-card">
@@ -374,10 +381,10 @@ function renderCapTimelineCard(capTimeline){
         <h2>Flag Pace</h2>
         <span>Capture Timeline</span>
       </div>
-      <div class="cap-timeline-bar" aria-label="Capture timeline from 0 to 15 minutes">
+      <div class="cap-timeline-bar" aria-label="Round-relative capture timeline">
         <div class="cap-timeline-track">
-          ${events.map(event=>{
-			  const seconds=Number(event.time_seconds||0);
+          ${events.filter(event=>event.round!==null).map((event,index)=>{
+			  const seconds=event.round_time_seconds;
 			  const left=Math.max(0,Math.min(100,(seconds/maxSeconds)*100));
 			  const teamClass=capTeamClass(event.team);
 			  const capNum=event.cap_num||"";
@@ -385,12 +392,12 @@ function renderCapTimelineCard(capTimeline){
 			  const capper = event.capper_name || event.capperName || "";
 
 			  const title =
-				`${capTeamLabel(event.team)} Capture #${capNum}` +
+				`R${event.round} · ${capTeamLabel(event.team)} Capture #${capNum}` +
 				(capper ? ` by ${capper}` : "");
 
 			  const ariaLabel=[
 				title,
-				event.time_text||matchFormatSeconds(event.time_seconds),
+				window.nnCaptureTimeline.clock(event.round_time_seconds),
 				event.score_after?`Score ${event.score_after}`:""
 			  ].filter(Boolean).join(" ");
 
@@ -398,42 +405,29 @@ function renderCapTimelineCard(capTimeline){
 				?"assets/images/icons/webp/red-flag.webp"
 				:"assets/images/icons/webp/blue-flag.webp";
             return `
-              <span
+              <button
+                type="button"
+                data-cap-detail="cap-detail-${index}"
                 class="cap-marker ${teamClass}"
                 style="left:${left}%"
-                title="${escapeAttr(title)}"
+                title="${escapeAttr(ariaLabel)}"
                 aria-label="${escapeAttr(ariaLabel)}"
               >
                 <img src="${escapeAttr(icon)}" alt="" loading="lazy" aria-hidden="true">
                 <span class="cap-marker-badge">${escapeHtml(capNum)}</span>
-              </span>
+              </button>
+              <div id="cap-detail-${index}" class="cap-detail ${teamClass}" hidden>
+                <strong>R${event.round} · ${escapeHtml(capTeamLabel(event.team))} Cap ${escapeHtml(capNum)}</strong>
+                <span>${escapeHtml(window.nnCaptureTimeline.clock(event.round_time_seconds))}</span>
+                <p>${escapeHtml(capper||"Unknown player")}</p>
+              </div>
             `;
           }).join("")}
         </div>
         <div class="cap-timeline-axis">
-          <span>0:00</span>
-          <span>5:00</span>
-          <span>10:00</span>
-          <span>15:00</span>
+          ${[0,1,2,3].map(i=>`<span>${window.nnCaptureTimeline.clock(maxSeconds*i/3)}</span>`).join("")}
         </div>
       </div>
-      <div class="cap-event-list">
-		  ${events.map(event=>{
-			const capper = event.capper_name || event.capperName || "";
-			return `
-			  <div class="cap-event ${capTeamClass(event.team)}">
-				<span class="cap-event-dot"></span>
-				<div class="cap-event-main">
-				  <div class="cap-event-header">
-					<strong>${escapeHtml(capTeamLabel(event.team))} Cap ${fmt(event.cap_num)}</strong>
-					<span>${escapeHtml(event.time_text||matchFormatSeconds(event.time_seconds))}</span>
-				  </div>
-				  ${capper ? `<div class="cap-event-capper">${escapeHtml(capper)}</div>` : ""}
-				</div>
-			  </div>
-			`;
-		  }).join("")}
-		</div>
     </section>
   `;
 }
@@ -460,92 +454,23 @@ function renderRoundMvpLabel(roundNum,roundMvps){
 
 function renderRoundSections(rounds,roundPlayerStats,roundMvps,blue,red,statsRows){
   const numbers=roundNumbers(rounds,roundPlayerStats);
-  if(!numbers.length)return"";
-
-  const roundsByNumber=new Map(rounds.map(r=>[Number(r.round_num||0),r]));
-  const statsByRound=new Map(numbers.map(n=>[
-    n,
-    roundPlayerStats.filter(r=>Number(r.round_num||0)===n)
-  ]));
-  const firstRound=numbers[0];
-
-  return `
-    <section class="match-card round-overview-card">
-      <h2>Round Overview</h2>
-      <div class="round-overview-grid">
-        ${numbers.map(number=>renderRoundOverviewCard(
-          number,
-          roundsByNumber.get(number)||{},
-          statsByRound.get(number)||[],
-          roundMvps,
-          blue,
-          red,
-          statsRows
-        )).join("")}
-      </div>
+  return numbers.map(number=>`
+    <section class="match-card round-details-card round-section round-${number}" aria-labelledby="round-heading-${number}">
+      <h2 id="round-heading-${number}">Round ${number}</h2>
+      <p class="round-scroll-hint">Swipe the table for more stats.</p>
+      ${renderRoundDetail(
+        number,
+        roundPlayerStats.filter(row=>Number(row.round_num||0)===number),
+        roundMvps,
+        blue,
+        red,
+        statsRows
+      )}
     </section>
-
-    <section class="match-card round-details-card">
-      <div class="round-details-head">
-        <h2>Round Details</h2>
-        <div class="round-tabs" role="tablist" aria-label="Match rounds">
-          ${numbers.map(number=>`
-            <button
-              type="button"
-              class="round-tab ${number===firstRound?"active":""}"
-              data-round-tab="${escapeAttr(number)}"
-              role="tab"
-              aria-selected="${number===firstRound?"true":"false"}"
-            >Round ${number}</button>
-          `).join("")}
-        </div>
-      </div>
-      <div class="round-detail-panels">
-        ${numbers.map(number=>renderRoundDetail(
-          number,
-          statsByRound.get(number)||[],
-          roundMvps,
-          blue,
-          red,
-          statsRows,
-          number===firstRound
-        )).join("")}
-      </div>
-    </section>
-  `;
+  `).join("");
 }
 
-function renderRoundOverviewCard(number,round,rows,roundMvps,blue,red,statsRows){
-  const duration=Number(round.duration_seconds||0);
-  const sideParts=[];
-  if(round.offense_team)sideParts.push(`Offense: ${round.offense_team}`);
-  if(round.defense_team)sideParts.push(`Defense: ${round.defense_team}`);
-
-  return `
-    <article class="round-overview-item">
-      <div class="round-overview-head">
-        <strong>Round ${number}</strong>
-        <span>${escapeHtml(round.map_name||"")}</span>
-      </div>
-      ${renderRoundMvpLabel(number,roundMvps)}
-      <div class="round-score">
-        <div class="team1"><span>Team 1</span><b>${fmt(round.team1_score)}</b></div>
-        <i>-</i>
-        <div class="team2"><span>Team 2</span><b>${fmt(round.team2_score)}</b></div>
-      </div>
-      <div class="round-meta">
-        <span>Duration: <b>${duration?matchFormatSeconds(duration):"-"}</b></span>
-        ${sideParts.length?`<span>${escapeHtml(sideParts.join(" / "))}</span>`:""}
-      </div>
-      <div class="round-leaders">
-        <div><span>Top Kills</span><strong>${topRoundPlayer(rows,"kills",blue,red,statsRows)}</strong></div>
-        <div><span>Top Damage</span><strong>${topRoundPlayer(rows,"enemy_damage",blue,red,statsRows)}</strong></div>
-      </div>
-    </article>
-  `;
-}
-
-function renderRoundDetail(number,rows,roundMvps,blue,red,statsRows,isActive){
+function renderRoundDetail(number,rows,roundMvps,blue,red,statsRows){
   const grouped={team1:[],team2:[],unknown:[]};
   for(const row of rows){
     const team=resolveRoundTeam(row,blue,red,statsRows);
@@ -553,15 +478,9 @@ function renderRoundDetail(number,rows,roundMvps,blue,red,statsRows,isActive){
   }
 
   return `
-    <div
-      class="round-detail-panel ${isActive?"active":""}"
-      data-round-panel="${escapeAttr(number)}"
-      role="tabpanel"
-      ${isActive?"":"hidden"}
-    >
+    <div class="round-detail-panel">
       <div class="round-team-tables">
-        ${renderRoundTeamTable("Team 1",grouped.team1,"blue",number,roundMvps,blue,red,statsRows)}
-        ${renderRoundTeamTable("Team 2",grouped.team2,"red",number,roundMvps,blue,red,statsRows)}
+        ${renderRoundCombinedTable(grouped,number,roundMvps,blue,red,statsRows)}
       </div>
       ${grouped.unknown.length
         ?`<div class="round-unassigned">${renderRoundTeamTable("Unassigned",grouped.unknown,"neutral",number,roundMvps,blue,red,statsRows)}</div>`
@@ -570,7 +489,37 @@ function renderRoundDetail(number,rows,roundMvps,blue,red,statsRows,isActive){
   `;
 }
 
+function renderRoundCombinedTable(grouped,roundNum,roundMvps,blue,red,statsRows){
+  const invertTeams=Number(roundNum)===2;
+  const rows=[...grouped.team1.map(row=>({...row,__team:invertTeams?"red":"blue"})),...grouped.team2.map(row=>({...row,__team:invertTeams?"blue":"red"}))];
+  const show={
+    sg:rows.some(row=>Number(row.sentry_kills||0)!==0),
+    cj:rows.some(row=>Number(row.conc_jumps||0)!==0),
+    caps:rows.some(row=>Number(row.flag_captures||0)!==0),
+    touches:rows.some(row=>Number(row.flag_touches||0)!==0),
+    flagTime:rows.some(row=>Number(row.flag_time_seconds||0)!==0)
+  };
+  return `<section class="round-team-table combined-round-table"><div class="round-table-scroll" tabindex="0" role="region" aria-label="Round ${roundNum} player statistics"><table class="round-stats-table"><thead><tr>
+    <th>Player</th><th>Role</th><th>K</th><th>Deaths E/T/S</th><th>Dmg</th><th>Team Dmg</th><th>CK</th>
+    ${show.sg?"<th>SG</th>":""}${show.cj?"<th>CJ</th>":""}${show.caps?"<th>Caps</th>":""}${show.touches?"<th>Touches</th>":""}${show.flagTime?"<th>Flag Time</th>":""}
+  </tr></thead><tbody>${rows.map((row,index)=>{
+    const isMvp=roundMvpForPlayer(row,roundNum,roundMvps);
+    return `<tr class="${row.__team} ${isMvp?"round-mvp-row":""} ${index===grouped.team1.length?"team-break":""}">
+      <td class="round-player-name">${isMvp?'<span class="round-mvp-star">⭐</span>':""}${roundPlayerLabel(row,blue,red,statsRows)}</td><td>${escapeHtml(row.role||"-")}</td><td>${fmt(row.kills)}</td><td>${fmt(row.deaths_by_enemy)}/${fmt(row.deaths_by_team)}/${fmt(row.suicides)}</td><td>${fmt(row.enemy_damage)}</td><td>${fmt(row.team_damage)}</td><td>${fmt(row.conced_kills)}</td>
+      ${show.sg?`<td>${fmt(row.sentry_kills)}</td>`:""}${show.cj?`<td>${fmt(row.conc_jumps)}</td>`:""}${show.caps?`<td>${fmt(row.flag_captures)}</td>`:""}${show.touches?`<td>${fmt(row.flag_touches)}</td>`:""}${show.flagTime?`<td>${matchFormatSeconds(row.flag_time_seconds)}</td>`:""}
+    </tr>`;
+  }).join("")}</tbody></table></div></section>`;
+}
+
 function renderRoundTeamTable(title,rows,color,roundNum,roundMvps,blue,red,statsRows){
+  const show={
+    sg:rows.some(row=>Number(row.sentry_kills||0)!==0),
+    cj:rows.some(row=>Number(row.conc_jumps||0)!==0),
+    caps:rows.some(row=>Number(row.flag_captures||0)!==0),
+    touches:rows.some(row=>Number(row.flag_touches||0)!==0),
+    flagTime:rows.some(row=>Number(row.flag_time_seconds||0)!==0)
+  };
+  const visibleCount=7+Object.values(show).filter(Boolean).length;
   return `
     <section class="round-team-table ${color}">
       <div class="round-team-title">
@@ -588,20 +537,20 @@ function renderRoundTeamTable(title,rows,color,roundNum,roundMvps,blue,red,stats
               <th>Dmg</th>
               <th>Team Dmg</th>
               <th title="Conced kills">CK</th>
-              <th title="Sentry kills">SG</th>
-              <th title="Concussion jumps">CJ</th>
-              <th>Caps</th>
-              <th>Touches</th>
-              <th>Flag Time</th>
+              ${show.sg?'<th title="Sentry kills">SG</th>':""}
+              ${show.cj?'<th title="Concussion jumps">CJ</th>':""}
+              ${show.caps?"<th>Caps</th>":""}
+              ${show.touches?"<th>Touches</th>":""}
+              ${show.flagTime?"<th>Flag Time</th>":""}
             </tr>
           </thead>
           <tbody>
             ${rows.length
               ?[...rows]
                 .sort((a,b)=>Number(b.kills||0)-Number(a.kills||0))
-                .map(row=>renderRoundPlayerRow(row,roundNum,roundMvps,blue,red,statsRows))
+                .map(row=>renderRoundPlayerRow(row,roundNum,roundMvps,blue,red,statsRows,show))
                 .join("")
-              :'<tr><td colspan="12" class="round-table-empty">No round stats</td></tr>'}
+              :`<tr><td colspan="${visibleCount}" class="round-table-empty">No round stats</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -609,7 +558,7 @@ function renderRoundTeamTable(title,rows,color,roundNum,roundMvps,blue,red,stats
   `;
 }
 
-function renderRoundPlayerRow(row,roundNum,roundMvps,blue,red,statsRows){
+function renderRoundPlayerRow(row,roundNum,roundMvps,blue,red,statsRows,show){
   const isMvp=roundMvpForPlayer(row,roundNum,roundMvps);
   return `
     <tr class="${isMvp?"round-mvp-row":""}">
@@ -620,55 +569,72 @@ function renderRoundPlayerRow(row,roundNum,roundMvps,blue,red,statsRows){
       <td>${fmt(row.enemy_damage)}</td>
       <td>${fmt(row.team_damage)}</td>
       <td>${fmt(row.conced_kills)}</td>
-      <td>${fmt(row.sentry_kills)}</td>
-      <td>${fmt(row.conc_jumps)}</td>
-      <td>${fmt(row.flag_captures)}</td>
-      <td>${fmt(row.flag_touches)}</td>
-      <td>${matchFormatSeconds(row.flag_time_seconds)}</td>
+      ${show.sg?`<td>${fmt(row.sentry_kills)}</td>`:""}
+      ${show.cj?`<td>${fmt(row.conc_jumps)}</td>`:""}
+      ${show.caps?`<td>${fmt(row.flag_captures)}</td>`:""}
+      ${show.touches?`<td>${fmt(row.flag_touches)}</td>`:""}
+      ${show.flagTime?`<td>${matchFormatSeconds(row.flag_time_seconds)}</td>`:""}
     </tr>
   `;
 }
 
-function bindRoundTabs(root){
-  if(root.dataset.roundTabsBound==="1")return;
-  root.dataset.roundTabsBound="1";
-
-  root.addEventListener("click",event=>{
-    const tab=event.target.closest("[data-round-tab]");
-    if(!tab||!root.contains(tab))return;
-
-    const round=String(tab.dataset.roundTab||"");
-    root.querySelectorAll("[data-round-tab]").forEach(button=>{
-      const active=String(button.dataset.roundTab||"")===round;
-      button.classList.toggle("active",active);
-      button.setAttribute("aria-selected",active?"true":"false");
-    });
-    root.querySelectorAll("[data-round-panel]").forEach(panel=>{
-      const active=String(panel.dataset.roundPanel||"")===round;
-      panel.classList.toggle("active",active);
-      panel.hidden=!active;
-    });
-  });
-}
-
-function renderPlayerTeam(title,teamRows,statsRows,classRows,weaponRows,color){
+function renderPlayerTeam(title,teamRows,statsRows,classRows,weaponRows,color,buildingRows){
   return `
     <div class="player-team-card ${color}">
       <div class="player-team-head">
         <span>${escapeHtml(title)}</span>
         <span>${teamRows.length} Players</span>
       </div>
-      ${teamRows.map(p=>renderMatchPlayer(p,statsRows,classRows,weaponRows)).join("")||'<div class="match-player-card">No players</div>'}
+      ${teamRows.map(p=>renderMatchPlayer(p,statsRows,classRows,weaponRows,buildingRows)).join("")||'<div class="match-player-card">No players</div>'}
     </div>
   `;
 }
 
-function renderMatchPlayer(teamPlayer,statsRows,classRows,weaponRows){
+function renderEngineerBuildings(rows){
+  if(!rows.length)return"";
+  function total(level,metric){
+    const values=rows.map(row=>row.levels?.[level]?.[metric]);
+    return values.every(value=>value!==null&&value!==undefined&&Number.isFinite(Number(value)))
+      ?values.reduce((sum,value)=>sum+Number(value),0):null;
+  }
+  const levels=["1","2","3"];
+  if(["kills","seconds"].some(metric=>Number(total("unknown",metric))>0))levels.push("unknown");
+  const sum=metric=>{
+    const values=["1","2","3","unknown"].map(level=>total(level,metric));
+    return values.every(value=>value!==null)?values.reduce((a,b)=>a+b,0):null;
+  };
+  const kills=value=>value===null?"Unavailable":fmt(value);
+  const uptime=value=>value===null?"Unavailable":matchFormatSeconds(value);
+  const dispenserValues=rows.map(row=>row.dispenser_seconds);
+  const dispenser=dispenserValues.every(value=>value!==null&&value!==undefined)
+    ?dispenserValues.reduce((a,b)=>a+Number(b),0):null;
+  const hasSentry=["1","2","3","unknown"].some(level=>
+    ["kills","seconds"].some(metric=>total(level,metric)!==null));
+  if(!hasSentry&&dispenser===null)return"";
+  const notes=[...new Set(rows.flatMap(row=>Array.isArray(row.notes)?row.notes:[]))]
+    .filter(note=>note!=="Engineer intervals are unavailable or incomplete; engineer-relative uptime is unknown.");
+  return `
+    <section class="match-buildings" aria-label="Engineer buildings">
+      <h3>Engineer Buildings</h3>
+      ${hasSentry?`<table class="match-buildings-table">
+        <caption>Building uptime across recorded rounds</caption>
+        <thead><tr><th scope="col">Sentry gun</th><th scope="col">Kills</th><th scope="col">Uptime</th></tr></thead>
+        <tbody>${levels.map(level=>`<tr><th scope="row">${level==="unknown"?"Unknown level":`Level ${level}`}</th><td>${kills(total(level,"kills"))}</td><td>${uptime(total(level,"seconds"))}</td></tr>`).join("")}</tbody>
+        <tfoot><tr><th scope="row">Total SG</th><td>${kills(sum("kills"))}</td><td>${uptime(sum("seconds"))}</td></tr></tfoot>
+      </table>`:""}
+      ${dispenser!==null?`<div class="match-mini-row match-dispenser"><span>Dispenser uptime</span><b>${uptime(dispenser)}</b></div>`:""}
+      ${notes.length?`<details class="match-building-notes"><summary>Recording notes</summary><ul>${notes.map(note=>`<li>${escapeHtml(note)}</li>`).join("")}</ul></details>`:""}
+    </section>
+  `;
+}
+
+function renderMatchPlayer(teamPlayer,statsRows,classRows,weaponRows,buildingRows=[]){
   const name=String(teamPlayer.name||teamPlayer.display_name||"");
   const stats=findStatsForPlayer(statsRows,teamPlayer)||{};
   const classes=rowsForPlayer(classRows,teamPlayer,stats).sort((a,b)=>Number(b.seconds||0)-Number(a.seconds||0));
   const weapons=rowsForPlayer(weaponRows,teamPlayer,stats).sort((a,b)=>Number(b.kills||0)-Number(a.kills||0));
   const d=Number(teamPlayer.delta||0);
+  const buildings=buildingRows.filter(row=>roundRowMatchesPlayer(row,teamPlayer,stats));
 
   return `
     <div class="match-player-card">
@@ -702,8 +668,42 @@ function renderMatchPlayer(teamPlayer,statsRows,classRows,weaponRows){
           `).join(""):'<div class="match-mini-row"><span>-</span><b>-</b></div>'}
         </div>
       </div>
+      ${renderEngineerBuildings(buildings)}
     </div>
   `;
 }
 
 document.addEventListener("DOMContentLoaded",loadMatch);
+
+// Position native popovers near their flags; outside clicks and Escape dismiss them.
+document.addEventListener("click",event=>{
+  const marker=event.target.closest(".cap-marker[data-cap-detail]");
+  if(!marker)return;
+  event.preventDefault();
+  const detail=document.getElementById(marker.dataset.capDetail);
+  if(!detail)return;
+  const rect=marker.getBoundingClientRect();
+  if(!detail.hidden){
+    detail.hidden=true;
+    return;
+  }
+  document.querySelectorAll(".cap-detail:not([hidden])").forEach(open=>{open.hidden=true;});
+  detail.hidden=false;
+  requestAnimationFrame(()=>{
+    const track=marker.parentElement;
+    const trackRect=track.getBoundingClientRect();
+    const center=((rect.left+rect.width/2-trackRect.left)/trackRect.width)*100;
+    detail.style.left=`${Math.max(8,Math.min(92,center))}%`;
+    detail.style.top=`-${detail.offsetHeight+8}px`;
+  });
+});
+
+document.addEventListener("click",event=>{
+  if(event.target.closest(".cap-marker[data-cap-detail]"))return;
+  document.querySelectorAll(".cap-detail:not([hidden])").forEach(detail=>{detail.hidden=true;});
+});
+
+document.addEventListener("keydown",event=>{
+  if(event.key!=="Escape")return;
+  document.querySelectorAll(".cap-detail:not([hidden])").forEach(detail=>{detail.hidden=true;});
+});

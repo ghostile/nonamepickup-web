@@ -63,6 +63,7 @@ const playerNormName = nn.normName || (v => String(v || "").toLowerCase().replac
 const playerWeaponName = nn.weaponName || (v => v);
 const canonicalFetchJSON = nn.fetchJSON;
 const pageSupporterBadge = nn.supporterBadge || (() => "");
+const BOOMER_DISCORD_ID = "700890663385956393";
 
 async function fetchJSON(url){
   if(typeof canonicalFetchJSON==="function"){
@@ -155,6 +156,123 @@ function eloTierRank(elo){
   if(e>=721)return"2";
   if(e>=300)return"1";
   return"NR";
+}
+
+function playerEloTierRank(elo,playerId){
+  return String(playerId)===BOOMER_DISCORD_ID?"B":eloTierRank(elo);
+}
+
+function boomerRandomBetween(min,max){
+  return min+Math.random()*(max-min);
+}
+
+function startBoomerMedicWander(roamer){
+  const character=roamer.querySelector(".boomer-medic-character");
+  const reduceMotion=window.matchMedia?.("(prefers-reduced-motion: reduce)");
+  if(!character||reduceMotion?.matches)return;
+
+  let currentAnimation=null;
+  let wanderGeneration=0;
+  let resizeTimer=null;
+
+  const pointTransform=point=>`translate3d(${point.x}px,${point.y}px,0)`;
+  const randomPoint=()=>{
+    const width=roamer.offsetWidth||84;
+    const height=roamer.offsetHeight||204;
+    const inset=10;
+    return{
+      x:boomerRandomBetween(inset,Math.max(inset,window.innerWidth-width-inset)),
+      y:boomerRandomBetween(inset,Math.max(inset,window.innerHeight-height-inset))
+    };
+  };
+  const pause=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
+  const syncVisibility=()=>{
+    roamer.classList.toggle("is-paused",document.hidden);
+    if(!currentAnimation)return;
+    if(document.hidden)currentAnimation.pause();
+    else currentAnimation.play();
+  };
+
+  async function wander(generation){
+    let current=randomPoint();
+    roamer.style.transform=pointTransform(current);
+    roamer.classList.add("is-ready");
+
+    while(roamer.isConnected&&generation===wanderGeneration){
+      let next=randomPoint();
+      let distance=0;
+      const minimumDistance=Math.hypot(window.innerWidth,window.innerHeight)*.24;
+      for(let attempt=0;attempt<8;attempt+=1){
+        distance=Math.hypot(next.x-current.x,next.y-current.y);
+        if(distance>=minimumDistance)break;
+        next=randomPoint();
+      }
+      distance=Math.hypot(next.x-current.x,next.y-current.y);
+
+      const movingRight=next.x>=current.x;
+      character.style.transform=`scaleX(${movingRight?1:-1})`;
+      const speed=boomerRandomBetween(55,95);
+      const duration=Math.min(16000,Math.max(3200,(distance/speed)*1000));
+      currentAnimation=roamer.animate(
+        [
+          {transform:pointTransform(current)},
+          {transform:pointTransform(next)}
+        ],
+        {duration,easing:"linear",fill:"forwards"}
+      );
+      syncVisibility();
+
+      try{
+        await currentAnimation.finished;
+      }catch{
+        return;
+      }
+      if(generation!==wanderGeneration)return;
+
+      roamer.style.transform=pointTransform(next);
+      currentAnimation.cancel();
+      currentAnimation=null;
+      current=next;
+      await pause(boomerRandomBetween(550,2400));
+    }
+  }
+
+  const restart=()=>{
+    wanderGeneration+=1;
+    currentAnimation?.cancel();
+    currentAnimation=null;
+    wander(wanderGeneration);
+  };
+  const handleResize=()=>{
+    window.clearTimeout(resizeTimer);
+    resizeTimer=window.setTimeout(restart,160);
+  };
+
+  document.addEventListener("visibilitychange",syncVisibility);
+  window.addEventListener("resize",handleResize);
+  restart();
+}
+
+function renderBoomerMedic(playerId){
+  document.querySelector(".boomer-medic-roamer")?.remove();
+  if(String(playerId)!==BOOMER_DISCORD_ID)return;
+
+  const roamer=document.createElement("div");
+  roamer.className="boomer-medic-roamer";
+  roamer.setAttribute("aria-hidden","true");
+  roamer.innerHTML=`
+    <div class="boomer-medic-character">
+      <div class="boomer-medic-waddle">
+        <svg class="boomer-medic-cane" viewBox="0 0 30 128" focusable="false" aria-hidden="true">
+          <path class="boomer-medic-cane-outline" d="M23 10 C23 3 13 1 9 7 C6 12 9 17 15 18 L12 123"></path>
+          <path class="boomer-medic-cane-highlight" d="M23 10 C23 3 13 1 9 7 C6 12 9 17 15 18 L12 123"></path>
+        </svg>
+        <img src="assets/images/classes/Medicold_tfc.png" alt="">
+      </div>
+    </div>
+  `;
+  document.body.appendChild(roamer);
+  startBoomerMedicWander(roamer);
 }
 
 function relativeTime(ts){
@@ -276,6 +394,7 @@ async function loadPlayerV3(){
   }
 
   currentPlayerId=playerId;
+  renderBoomerMedic(playerId);
   currentFlagCarry=null;
   flagCarryMatches=[];
   flagCarryMatchesOffset=0;
@@ -325,6 +444,8 @@ async function loadPlayerV3(){
 
   const playerName=player.name||playerId;
   const playerBadge=pageSupporterBadge(playerId);
+  const eloTier=playerEloTierRank(ratings.elo,playerId);
+  const eloTierTitle=String(playerId)===BOOMER_DISCORD_ID?' title="B is for Boomer"':"";
 
   setHtml(
       "player-name-v3",
@@ -340,13 +461,18 @@ async function loadPlayerV3(){
   setHtml("player-mark",avatarFallback+avatarImage);
   setHtml("player-elo-line",ratings.hidden
     ? 'Current Elo: <strong>Hidden</strong> <span>| Elo Tier: <strong>Hidden</strong></span>'
-    : 'Current Elo: <strong>'+Number(ratings.elo||0)+'</strong> <span>| Elo Tier: <strong>'+eloTierRank(ratings.elo)+'</strong></span>'
+    : 'Current Elo: <strong>'+Number(ratings.elo||0)+'</strong> <span>| Elo Tier: <strong'+eloTierTitle+'>'+eloTier+'</strong></span>'
   );
   setHtml("player-record-line",'Record: <strong>'+escapeHtml(ratings.record||"-")+'</strong> <span>| Win%: <b class="good">'+(ratings.win_pct??0)+'%</b></span>');
   setText("steam-line",player.steam_id?"SteamID: "+player.steam_id:"SteamID: Not linked");
   renderSpeedrunProfileLink(playerId);
   setText("player2-current-elo",ratings.hidden?"Hidden":String(Number(ratings.elo||0)));
-  setText("player2-elo-rank",ratings.hidden?"Hidden":eloTierRank(ratings.elo));
+  setText("player2-elo-rank",ratings.hidden?"Hidden":eloTier);
+  const eloRankEl=qs("player2-elo-rank");
+  if(eloRankEl){
+    if(eloTierTitle)eloRankEl.title="B is for Boomer";
+    else eloRankEl.removeAttribute("title");
+  }
   setText("player2-record",ratings.record||"-");
   setText("player2-win-pct",(ratings.win_pct??0)+"%");
 
@@ -360,17 +486,18 @@ async function loadPlayerV3(){
   setText("kpi-elo-window-label","Last "+fmt(ratings.elo_window?.games||0)+" Games");
   setText("kpi-peak-elo",ratings.hidden?"Hidden":ratings.peak_elo);
   setText("kpi-best-streak",fmt(ratings.best_streak));
+  setText("kpi-worst-streak",ratings.worst_streak==null?"—":fmt(ratings.worst_streak));
   setText("kpi-pugs-week",ratings.pugs_per_week ?? "0.0");
   renderPlayerLastTen(recentRows,playerId);
   const mvpGames=Number(h.mvp_games||0);
   const mvpPct=ratings.games>0? Math.round((mvpGames/ratings.games)*100): 0;
   const mvpEl=document.getElementById("kpi-mvps");
   if(mvpEl)mvpEl.innerHTML = `${fmt(mvpGames)} <span class="kpi-subpct">· ${mvpPct}% of games</span>`;
-  const eloValues=recentRows
-    .map(m=>({elo:Number(m.after??m.rating),delta:Number(m.delta??0),ts:Number(m.created_at||0)}))
-    .filter(v=>Number.isFinite(v.elo))
-    .reverse();
+  const eloValues=(Array.isArray(ratings.history)?ratings.history:[])
+    .filter(point=>point.elo!=null&&Number.isFinite(Number(point.elo)))
+    .map(point=>({elo:Number(point.elo),delta:Number(point.delta??0),ts:Number(point.ts||0)}));
 
+  setText("elo-chart-label",ratings.hidden?"Hidden":"All Matches · "+fmt(eloValues.length));
   renderEloChartV3(eloValues,!!ratings.hidden);
   populateGranularMapSelect(recentRows);
   populateGranularMatchSelect(recentRows);

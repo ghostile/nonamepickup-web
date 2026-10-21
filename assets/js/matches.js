@@ -122,6 +122,7 @@
   }
 
   function winnerBadge(m) {
+    if (m.status === "playtest") return `<span class="winner-badge badge-playtest">PLAYTEST</span>`;
     const w = String(m.winner || "").toUpperCase();
     if (m.status === "pending" || !w) return `<span class="winner-badge badge-pending">PENDING</span>`;
     if (w === "BLUE") return `<span class="winner-badge badge-blue">BLUE</span>`;
@@ -167,16 +168,19 @@
   }
 
   function isCloseOrTie(m) {
+    if (m.status === "playtest") return false;
     const diff = scoreDiff(m);
     return m.winner === "TIE" || (diff != null && diff < 25);
   }
 
   function isWithin25(m) {
+    if (m.status === "playtest") return false;
     const diff = scoreDiff(m);
     return diff != null && diff <= 25;
   }
 
   function isBlowout(m) {
+    if (m.status === "playtest") return false;
     const diff = scoreDiff(m);
     return diff != null && diff > 25 && m.winner !== "TIE";
   }
@@ -204,6 +208,7 @@
     if (outcome === "close") rows = rows.filter(isCloseOrTie);
     if (outcome === "under25") rows = rows.filter(isWithin25);
     if (outcome === "blowout") rows = rows.filter(isBlowout);
+    if (outcome === "playtest") rows = rows.filter(m => m.status === "playtest");
     if (outcome === "pending") rows = rows.filter(m => m.status === "pending");
 
     rows.sort((a, b) => {
@@ -435,25 +440,15 @@
     return String(team || "Team");
   }
 
-  function renderViewerCapTimeline(capTimeline) {
-    if (!Array.isArray(capTimeline) || !capTimeline.length) return "";
-    const maxSeconds = 15 * 60;
-    const events = [...capTimeline]
-      .map(event => ({
-		  team: event.team,
-		  cap_num: event.cap_num ?? event.capNumber ?? event.cap,
-		  time_seconds: Number(event.time_seconds ?? event.timeSeconds ?? 0),
-		  time_text: event.time_text || event.timeText || "",
-		  score_after: event.score_after || event.scoreAfter || "",
-		  capper_name: event.capper_name || event.capperName || "",
-		  capper_steam_id: event.capper_steam_id || event.capperSteamId || ""
-		}))
-      .sort((a, b) => Number(a.time_seconds || 0) - Number(b.time_seconds || 0));
+  function renderViewerCapTimeline(capTimeline, match) {
+    const { events, extent: maxSeconds } = window.nnCaptureTimeline.build(match || {}, capTimeline);
+    const clock = window.nnCaptureTimeline.clock;
+    if (!events.length) return '<section class="m2-viewer-section"><div class="m2-viewer-section-head"><span>Flag Pace</span></div><p>No timestamped captures supplied.</p></section>';
     const laneGapPercent = 5.2;
     const laneCount = 4;
     const laneLastLeft = Array(laneCount).fill(-Infinity);
-    const eventsWithLanes = events.map(event => {
-      const seconds = Number(event.time_seconds || 0);
+    const eventsWithLanes = events.filter(event => event.round !== null).slice().sort((a,b) => a.round_time_seconds-b.round_time_seconds).map(event => {
+      const seconds = event.round_time_seconds;
       const left = Math.max(3, Math.min(97, (seconds / maxSeconds) * 100));
       let lane = laneLastLeft.findIndex(lastLeft => left - lastLeft >= laneGapPercent);
       if (lane < 0) lane = laneLastLeft.indexOf(Math.min(...laneLastLeft));
@@ -465,16 +460,16 @@
       <section class="m2-viewer-section m2-viewer-cap-section">
         <div class="m2-viewer-section-head">
           <span>Flag Pace</span>
-          <strong>Capture Timeline</strong>
+          <strong>Round-relative clock</strong>
         </div>
-        <div class="m2-viewer-cap-track">
+        ${eventsWithLanes.length?`<div class="m2-viewer-cap-track">
           ${eventsWithLanes.map(event => {
             const left = event.left;
             const teamClass = capTeamClass(event.team);
             const label = capTeamLabel(event.team);
             const capNum = event.cap_num || "";
             const capper = event.capper_name || "";
-            const title = `${label} Capture #${capNum}${capper ? ` - ${capper}` : ""}`;
+            const title = `R${event.round} · ${label} Capture #${capNum} · ${clock(event.round_time_seconds)}${capper ? ` - ${capper}` : ""}`;
             const icon = teamClass === "red"
               ? "assets/images/icons/webp/red-flag.webp"
               : "assets/images/icons/webp/blue-flag.webp";
@@ -483,7 +478,7 @@
                 class="m2-viewer-cap-marker ${teamClass}"
                 style="left:${left}%;--cap-lane:${event.lane};--cap-shift:${(event.lane - 1.5) * 3}px"
                 title="${escapeAttr(title)}"
-                aria-label="${escapeAttr([title,event.time_text].filter(Boolean).join(" - "))}"
+                aria-label="${escapeAttr(title)}"
               >
                 <img src="${escapeAttr(icon)}" alt="" loading="lazy" aria-hidden="true">
                 <span class="m2-viewer-cap-badge">${escapeHtml(capNum)}</span>
@@ -491,15 +486,15 @@
             `;
           }).join("")}
         </div>
-        <div class="m2-viewer-cap-axis"><span>0:00</span><span>5:00</span><span>10:00</span><span>15:00</span></div>
+        <div class="m2-viewer-cap-axis">${[0,1,2,3].map(i=>`<span>${clock(maxSeconds*i/3)}</span>`).join("")}</div>`:'<p>Round-relative times unavailable: recorded round boundaries are missing or ambiguous.</p>'}
         <div class="m2-viewer-cap-list">
 		  ${events.map(event => `
 			<div class="m2-viewer-cap-event ${capTeamClass(event.team)}">
 			  <span></span>
 			  <div class="m2-viewer-cap-main">
 				<div class="m2-viewer-cap-row">
-				  <b>${escapeHtml(capTeamLabel(event.team))} Cap ${escapeHtml(event.cap_num || "")}</b>
-				  <em>${escapeHtml(event.time_text || "")}</em>
+				  <b>${event.round===null?"Round unavailable":`R${event.round}`} · ${escapeHtml(capTeamLabel(event.team))} Cap ${escapeHtml(event.cap_num || "")}</b>
+				  <em>${escapeHtml(clock(event.round_time_seconds))}</em>
 				</div>
 				${event.capper_name ? `<strong>${escapeHtml(event.capper_name)}</strong>` : ""}
 			  </div>
@@ -591,7 +586,7 @@
           </div>
 
           ${renderViewerTeams(m)}
-          ${renderViewerCapTimeline(capTimeline)}
+          ${loading?"":renderViewerCapTimeline(capTimeline,detail)}
 
           <div class="m2-viewer-actions">
             ${reports ? matchButtons(m) : ""}
@@ -639,7 +634,7 @@
     body.innerHTML = pageRows.map(m => {
       const cardClasses = [
         "matches2-match-card",
-        winnerClass(m.winner),
+        m.status === "playtest" ? "row-playtest" : winnerClass(m.winner),
         m.status === "pending" ? "row-pending" : "",
         state.expandedMatchId === m.id ? "m2-card-selected" : ""
       ].filter(Boolean).join(" ");

@@ -162,12 +162,13 @@
 .matches2-panel {
   display: flex;
   flex-direction: column;
-  height: min(760px, calc(100vh - 108px));
+  height: var(--matches2-workspace-height);
   min-height: 0;
   padding: 18px;
 }
 
 .matches2-browser-layout {
+  --matches2-workspace-height: 920px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
   gap: 18px;
@@ -182,7 +183,7 @@
   position: sticky;
   top: 88px;
   min-width: 0;
-  height: min(760px, calc(100vh - 108px));
+  height: var(--matches2-workspace-height);
 }
 
 .m2-viewer-empty,
@@ -1017,6 +1018,26 @@
   color: #fed7aa;
   background: rgba(251,146,60,.16);
   border: 1px solid rgba(251,146,60,.28);
+}
+
+.badge-playtest {
+  color: #ddd6fe;
+  background: rgba(139,92,246,.16);
+  border: 1px solid rgba(167,139,250,.28);
+}
+
+.matches2-match-card.row-playtest {
+  border-color: rgba(167,139,250,.28);
+}
+
+.matches2-match-card.row-playtest:hover,
+.matches2-match-card.row-playtest.m2-card-selected {
+  border-color: rgba(167,139,250,.5);
+}
+
+.row-playtest .m2-card-accent {
+  background: linear-gradient(180deg, #a78bfa, rgba(109,40,217,.28));
+  box-shadow: 0 0 16px rgba(167,139,250,.32);
 }
 
 .matches2-empty {

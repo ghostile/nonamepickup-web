@@ -33,6 +33,10 @@ function createApp({
     SUPPORTERS_FILE,
     QUEUE_FILE,
     KICKED_FILE,
+    SPELLING_LISTS_FILE,
+    SPELLING_SCORES_FILE,
+    SPELLING_ADMIN_USER,
+    SPELLING_ADMIN_PASSWORD,
     TRUST_PROXY,
     CORS_ORIGIN,
     API_RATE_LIMIT,
@@ -78,6 +82,15 @@ function createApp({
 
   // CORS
   app.use(createCorsMiddleware(CORS_ORIGIN));
+
+  // Live prediction standings read the existing configured ELO database.
+  // Keep existing rate limits and omit prediction API traffic from analytics.
+  if (process.env.PREDICTIONS_WEB_MODE !== "off") {
+    const { predictionRuntime } = require("./predictions/runtime");
+    const predictions = predictionRuntime();
+    app.use("/api/predictions", predictions.router);
+    app.locals.closePredictions = predictions.close;
+  }
 
   // Website analytics logging
   app.use(createAnalyticsMiddleware({
@@ -225,7 +238,7 @@ function createApp({
           SELECT recent.*, EXISTS (
             SELECT 1
             FROM player_steam_ids psi
-            JOIN match_round_mvps mvp
+            JOIN canonical_match_mvps mvp
               ON mvp.mvp_player_key = psi.steam_id OR mvp.steam_id = psi.steam_id
             WHERE CAST(psi.discord_id AS TEXT) = CAST(recent.player_id AS TEXT)
               AND mvp.match_id = recent.match_id
@@ -334,6 +347,10 @@ function createApp({
     statsSummaryStmt,
     QUEUE_FILE,
     KICKED_FILE,
+    SPELLING_LISTS_FILE,
+    SPELLING_SCORES_FILE,
+    SPELLING_ADMIN_USER,
+    SPELLING_ADMIN_PASSWORD,
     DATA_DIR,
     compareProfileStmt,
     compareMatchesStmt,

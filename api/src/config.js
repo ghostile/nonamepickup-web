@@ -14,6 +14,10 @@ const ELO_DB = process.env.ELO_DB || path.join(DATA_DIR, "elo.db");
 const SUPPORTERS_FILE = process.env.SUPPORTERS_FILE || path.join(DATA_DIR, "supporters.json");
 const QUEUE_FILE = process.env.QUEUE_FILE || path.join(DATA_DIR, "queue.json");
 const KICKED_FILE = process.env.KICKED_FILE || path.join(DATA_DIR, "kicked.json");
+const SPELLING_LISTS_FILE = process.env.SPELLING_LISTS_FILE || path.join(DATA_DIR, "spelling-lists.json");
+const SPELLING_SCORES_FILE = process.env.SPELLING_SCORES_FILE || path.join(DATA_DIR, "spelling-scores.json");
+const SPELLING_ADMIN_USER = process.env.SPELLING_ADMIN_USER || "";
+const SPELLING_ADMIN_PASSWORD = process.env.SPELLING_ADMIN_PASSWORD || "";
 // TODO(production): TRUST_PROXY must match the real proxy hop topology or client IPs and rate limits can be unreliable.
 const TRUST_PROXY = process.env.TRUST_PROXY === "true" ? 1 : false;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "";
@@ -24,6 +28,11 @@ const ANALYTICS_RETENTION_DAYS = positiveInt(process.env.ANALYTICS_RETENTION_DAY
 const ANALYTICS_WARM_INTERVAL_MS = nonNegativeInt(
   process.env.ANALYTICS_WARM_INTERVAL_MS,
   5 * 60 * 1000,
+  24 * 60 * 60 * 1000
+);
+const NN_MVP_SYNC_INTERVAL_MS = nonNegativeInt(
+  process.env.NN_MVP_SYNC_INTERVAL_MS,
+  60 * 1000,
   24 * 60 * 60 * 1000
 );
 const STEAM_API_KEY = process.env.STEAM_API_KEY || "";
@@ -70,6 +79,10 @@ const config = {
   SUPPORTERS_FILE,
   QUEUE_FILE,
   KICKED_FILE,
+  SPELLING_LISTS_FILE,
+  SPELLING_SCORES_FILE,
+  SPELLING_ADMIN_USER,
+  SPELLING_ADMIN_PASSWORD,
   TRUST_PROXY,
   CORS_ORIGIN,
   API_RATE_LIMIT,
@@ -77,6 +90,7 @@ const config = {
   MAX_PLAYER_MATCH_LIMIT,
   ANALYTICS_RETENTION_DAYS,
   ANALYTICS_WARM_INTERVAL_MS,
+  NN_MVP_SYNC_INTERVAL_MS,
   STEAM_API_KEY,
   CURRENT_RULESET,
   MIN_VALID_RUN_TIME_MS,

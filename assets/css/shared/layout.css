@@ -23,6 +23,7 @@
 }
 
 .index-page main,.matches-page main,.leaderboard-page main,.analytics-page main,.player-page main,.player-v3-page main,.map-page main,.map-v2-page main,.compare-page main,.player-v2-page main,.live-page main,.live2-page main,.speedruns-page main{position:relative;z-index:1;width:min(calc(100% - (var(--page-gutter-desktop) * 2)),var(--page-main-width));max-width:var(--page-main-width)!important;margin-left:auto;margin-right:auto;}
+@media(min-width:901px){body:not(.replay-page)>main{width:calc(100% - (var(--page-gutter-desktop) * 2))!important;max-width:none!important;margin-left:auto!important;margin-right:auto!important}}
 .page-main-spacing{margin-left:auto;margin-right:auto;padding:var(--page-top-gap) 0 var(--page-bottom-gap);}
 
 .index-page::after,.matches-page::after,.leaderboard-page::after,.analytics-page::after,.player-page::after,.player-v3-page::after,.map-page::after,.map-v2-page::after,.compare-page::after,.player-v2-page::after,.speedruns-page::after,.vegas-page::after{content:"";position:fixed;top:0;right:0;width:34%;height:var(--page-glow-height);pointer-events:none;z-index:0;background:radial-gradient(ellipse at top right,var(--page-glow-right),transparent 72%);}

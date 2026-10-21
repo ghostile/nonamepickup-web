@@ -17,6 +17,8 @@ const { createPlayerIdentitiesRouter } = require("./playerIdentities");
 const { createSpeedrunComparisonsRouter } = require("./speedrunComparisons");
 const { createShadowEloRouter } = require("./shadowElo");
 const { createCoolestDudeRouter } = require("./coolestDude");
+const { createSpellingRouter } = require("./spelling");
+const { createDefenseIqRouter } = require("./defenseIq");
 
 function registerRoutes(app, {
   leaderboardHandler,
@@ -39,6 +41,10 @@ function registerRoutes(app, {
   statsSummaryStmt,
   QUEUE_FILE,
   KICKED_FILE,
+  SPELLING_LISTS_FILE,
+  SPELLING_SCORES_FILE,
+  SPELLING_ADMIN_USER,
+  SPELLING_ADMIN_PASSWORD,
   DATA_DIR,
   compareProfileStmt,
   compareMatchesStmt,
@@ -55,6 +61,7 @@ app.use("/api", createSystemRouter({
 
 // Leaderboard
 app.get("/api/leaderboard", leaderboardHandler);
+app.use("/api", createDefenseIqRouter({ db, cleanString, sendError, logRouteError }));
 
 // Matches
 app.use("/api", createMatchesRouter({
@@ -146,6 +153,7 @@ app.use("/api", createQueueRouter({
   logRouteError
 }));
 app.use("/api", createKickedRouter({
+  db,
   kickedFile: KICKED_FILE,
   fs,
   cleanString,
@@ -186,6 +194,7 @@ app.use("/api", createCoolestDudeRouter({
   sendError,
   logRouteError
 }));
+app.use("/api", createSpellingRouter({ fs, file: SPELLING_LISTS_FILE, scoresFile: SPELLING_SCORES_FILE, adminUser: SPELLING_ADMIN_USER, adminPassword: SPELLING_ADMIN_PASSWORD }));
 }
 
 module.exports = { registerRoutes };

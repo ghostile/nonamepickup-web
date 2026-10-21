@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Compare predicted defensive classes with recorded choices and historical team results in NoName TFC pickups.">
+  <meta name="robots" content="noindex">
+  <title>NoName TFC Pickups | Defense IQ</title>
+  <link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
+  <link rel="stylesheet" href="assets/css/app.css?v=20261011universalscale1">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260618i">
+  <link rel="stylesheet" href="assets/css/defense-iq.css?v=20261016unused1">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Orbitron:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="assets/js/main.js?v=20261004nav1" defer></script>
+  <script src="assets/js/defense-iq.js?v=20261016nav1" defer></script>
+</head>
+<body class="compare-page defense-iq-page">
+  <a href="#defense-main" class="diq-skip">Skip to Defense IQ</a>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <div class="nn-logo" aria-label="NoName TFC">
+        <span class="logo-nn">NN</span><span class="logo-slash">//</span><span class="logo-tfc">TFC</span>
+      </div>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="index.html">Home</a>
+        <a href="matches.html">Matches</a>
+        <a href="leaderboard.html">Players</a>
+        <a href="speedruns.html">Speedruns</a>
+        <a href="live.html" class="nav-live">Live</a>
+        <details class="nav-more">
+          <summary class="nav-more-current">More<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m4 6 4 4 4-4"/></svg></summary>
+          <div class="nav-more-links">
+            <a href="analytics.html">Analytics</a>
+            <a href="compare.html">Compare players</a>
+            <a href="defense-iq.html" aria-current="page">Defense IQ</a>
+            <a href="kicked.html">Missed votes</a>
+            <a href="coolest-dude.html">Community honors</a>
+            <a href="mvp-breakdown.html">MVP breakdown</a>
+            <a href="tracker.html">Identity history</a>
+            <a href="live/">Browser spectator</a>
+          </div>
+        </details>
+      </nav>
+      <input id="global-search" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search players..." aria-label="Search players" class="site-search">
+    </div>
+  </header>
+  <main id="defense-main" class="compare-main page-main-spacing">
+    <div class="compare-shell">
+      <header class="compare-header diq-hero">
+        <div><h1>Defense IQ</h1><p>Expected picks. Actual choices. Historical results.</p></div>
+        <span class="diq-preview">Community preview</span>
+      </header>
+      <div class="diq-modes" role="group" aria-label="Analysis view">
+        <button type="button" id="mode-match" aria-pressed="true" aria-controls="match-form">Match review</button>
+        <button type="button" id="mode-player" aria-pressed="false" aria-controls="player-form">Player + map</button>
+      </div>
+      <section class="diq-controls" aria-label="Choose an analysis">
+        <form id="match-form" class="diq-form">
+          <div class="diq-field diq-wide"><label for="match-select">Recent completed pickup</label><select id="match-select" disabled><option value="">Loading matches…</option></select></div>
+          <div class="diq-field"><label for="match-id">Or enter a match ID</label><input id="match-id" type="text" maxlength="100" placeholder="Match ID" autocomplete="off"></div>
+          <button type="submit" class="diq-primary" disabled>Review match</button>
+        </form>
+        <form id="player-form" class="diq-form" hidden>
+          <div class="diq-field diq-wide"><label for="player-search">Find a player</label><input id="player-search" type="search" placeholder="Filter players by name…" autocomplete="off" aria-controls="player-select"></div>
+          <div class="diq-field diq-wide"><label for="player-select">Player</label><select id="player-select" disabled><option value="">Loading players…</option></select></div>
+          <div class="diq-field"><label for="map-select">Map</label><select id="map-select" disabled><option value="">Loading maps…</option></select></div>
+          <button type="submit" class="diq-primary" disabled>Read defense</button>
+        </form>
+        <p class="diq-control-note" id="selection-note">Historical reviews use only data recorded before that match.</p>
+      </section>
+      <p id="diq-status" class="diq-status" role="status" aria-live="polite">Loading available matches and players…</p>
+      <button id="diq-retry" type="button" class="diq-secondary" hidden>Try again</button>
+      <section id="diq-results" aria-label="Defense analysis" aria-busy="false"></section>
+      <noscript><p class="diq-empty">Enable JavaScript to load class history and predictions.</p></noscript>
+    </div>
+  </main>
+</body>
+</html>

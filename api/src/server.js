@@ -26,6 +26,7 @@ const { createFlagCarryStore } = require("./pickup/flagCarryStore");
 const { PickupReplayViewer } = require("./pickup/viewer");
 const { PickupLiveService } = require("./pickup/live");
 const { attachUdpRelay } = require("./live/udpRelay");
+const { syncPendingNnMvps } = require("./lib/nnMvpStore");
 
 config.validatePickupConfiguration();
 
@@ -148,11 +149,38 @@ if (config.ANALYTICS_WARM_INTERVAL_MS > 0) {
   }, config.ANALYTICS_WARM_INTERVAL_MS).unref();
 }
 
+let nnMvpSyncInFlight = false;
+function syncNnMvps() {
+  if (nnMvpSyncInFlight) return;
+  nnMvpSyncInFlight = true;
+  try {
+    const summary = syncPendingNnMvps(db, { limit: 100 });
+    if (summary.processed || summary.failed) {
+      console.log(`[nn-mvp] processed=${summary.processed} changed=${summary.changed} unavailable=${summary.unavailable} failed=${summary.failed}`);
+    }
+  } catch (error) {
+    console.error("[nn-mvp] synchronization failed:", error.message);
+  } finally {
+    nnMvpSyncInFlight = false;
+  }
+}
+
+const nnMvpStartupTimer = config.NN_MVP_SYNC_INTERVAL_MS > 0
+  ? setTimeout(syncNnMvps, 500)
+  : null;
+nnMvpStartupTimer?.unref();
+const nnMvpSyncTimer = nnMvpStartupTimer
+  ? setInterval(syncNnMvps, config.NN_MVP_SYNC_INTERVAL_MS)
+  : null;
+nnMvpSyncTimer?.unref();
+
 let shuttingDown = false;
 function shutdown(signal) {
   if (shuttingDown) return;
   shuttingDown = true;
   console.log(`[shutdown] ${signal}`);
+  if (nnMvpStartupTimer) clearTimeout(nnMvpStartupTimer);
+  if (nnMvpSyncTimer) clearInterval(nnMvpSyncTimer);
 
   const forceTimer = setTimeout(() => process.exit(1), 10_000);
   forceTimer.unref();
@@ -160,6 +188,7 @@ function shutdown(signal) {
   server.close(async () => {
     try {
       liveRelay.close();
+      app.locals.closePredictions?.();
       pickupLive.close();
       db.close();
       await closePickupPool();

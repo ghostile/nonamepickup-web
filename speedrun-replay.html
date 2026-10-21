@@ -8,10 +8,10 @@
 
   <link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
   <link rel="shortcut icon" href="/assets/images/favicon.ico">
-  <link rel="stylesheet" href="assets/css/app.css?v=20261004nav1">
+  <link rel="stylesheet" href="assets/css/app.css?v=20261011universalscale1">
   <link rel="stylesheet" href="assets/css/style.css?v=20260618i">
   <link rel="stylesheet" href="assets/css/speedruns.css?v=20260910leaderboardfit2">
-  <link rel="stylesheet" href="assets/css/speedrun-replay.css?v=20260906avgspeed2">
+  <link rel="stylesheet" href="assets/css/speedrun-replay.css?v=20261014timinghud13">
   <script src="assets/js/main.js?v=20261004nav1" defer></script>
   <script type="importmap">
     {
@@ -20,7 +20,7 @@
       }
     }
   </script>
-  <script type="module" src="assets/js/speedrun-replay.js?v=20260906avgspeed2"></script>
+  <script type="module" src="assets/js/speedrun-replay.js?v=20261014timinghud13"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Orbitron:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 
@@ -44,6 +44,7 @@
           <div class="nav-more-links">
             <a href="analytics.html">Analytics</a>
             <a href="compare.html">Compare players</a>
+            <a href="defense-iq.html">Defense IQ</a>
             <a href="kicked.html">Missed votes</a>
             <a href="coolest-dude.html">Community honors</a>
             <a href="mvp-breakdown.html">MVP breakdown</a>
@@ -87,6 +88,27 @@
           <kbd data-input="jump">SPACE</kbd>
           <kbd data-input="attack">M1</kbd>
           <kbd data-input="attack2">M2</kbd>
+        </div>
+        <div class="replay-timing-mini" aria-label="Replay timing">
+          <div class="replay-timing-mini-summary">
+            <div>
+              <span>RUN TIME</span>
+              <strong id="replay-run-timer">0:00.000</strong>
+            </div>
+            <div>
+              <span>ACTIVE SPLIT</span>
+              <strong id="replay-active-split">Start</strong>
+              <small id="replay-active-split-time">—</small>
+            </div>
+          </div>
+          <div class="replay-timing-mini-heading">
+            <span>SPLITS</span>
+            <small id="replay-splits-precision">Recorded timing</small>
+          </div>
+          <table class="replay-mini-splits-table" aria-label="Replay splits">
+            <thead><tr><th scope="col">Split</th><th scope="col">Time</th><th scope="col">Δ</th></tr></thead>
+            <tbody id="replay-splits-body"></tbody>
+          </table>
         </div>
       </aside>
 
@@ -176,11 +198,17 @@
         </div>
         <label class="replay-scrubber">
           <span id="replay-clock">0:00.000</span>
-          <input id="replay-slider" type="range" min="0" max="1000" step="1" value="0">
+          <span class="replay-scrubber-track">
+            <input id="replay-slider" type="range" min="0" max="1000" step="1" value="0">
+            <span id="replay-scrubber-markers" class="replay-scrubber-markers"></span>
+          </span>
           <span id="replay-duration">0:00.000</span>
         </label>
       </section>
     </section>
   </main>
+  <!-- Cloudflare Web Analytics -->
+  <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "a027c9b6496948cdbc21311387c802d5"}'></script>
+  <!-- End Cloudflare Web Analytics -->
 </body>
 </html>

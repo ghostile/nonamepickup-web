@@ -14,11 +14,11 @@
 
   <link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
   <link rel="shortcut icon" href="/assets/images/favicon.ico">
-  <link rel="stylesheet" href="assets/css/app.css?v=20261004nav1">
+  <link rel="stylesheet" href="assets/css/app.css?v=20261011universalscale1">
   <link rel="stylesheet" href="assets/css/style.css?v=20260618i">
-  <link rel="stylesheet" href="assets/css/speedruns.css?v=20260913tableclarity1">
+  <link rel="stylesheet" href="assets/css/speedruns.css?v=20261013mapdetailv2">
   <script src="assets/js/main.js?v=20261004nav1" defer></script>
-  <script src="assets/js/speedruns.js?v=20260910attempted-completed1" defer></script>
+  <script src="assets/js/speedruns.js?v=20261013mapdetailv2" defer></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Orbitron:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 
@@ -42,6 +42,7 @@
           <div class="nav-more-links">
             <a href="analytics.html">Analytics</a>
             <a href="compare.html">Compare players</a>
+            <a href="defense-iq.html">Defense IQ</a>
             <a href="kicked.html">Missed votes</a>
             <a href="coolest-dude.html">Community honors</a>
             <a href="mvp-breakdown.html">MVP breakdown</a>
@@ -56,86 +57,151 @@
   </header>
 
   <main class="speedrun-main">
-    <section class="speedrun-shell">
-      <div class="speedrun-hero detail">
-        <div>
-          <p class="speedrun-kicker">MAP RECORDS</p>
-          <h1 id="sr-map-title">Speedrun Map</h1>
-          <p id="sr-map-subtitle" class="speedrun-subtitle">Loading map leaderboard...</p>
-          <p id="speedrun-status" class="speedrun-updated"><a href="speedruns.html">Speedruns</a></p>
-        </div>
-
-        <section class="speedrun-summary detail" aria-label="Map summary">
-          <article class="matches2-kpi"><span>World Record</span><strong id="sr-map-wr">-</strong></article>
-          <article class="matches2-kpi"><span>Attempted</span><strong id="sr-map-attempts">-</strong></article>
-          <article class="matches2-kpi"><span>Completed</span><strong id="sr-map-runs">-</strong></article>
-          <article class="matches2-kpi"><span>Runners</span><strong id="sr-map-runners">-</strong></article>
-          <article class="matches2-kpi"><span>Records</span><strong id="sr-map-records">-</strong></article>
-          <article class="matches2-kpi"><span>Difficulty</span><strong id="sr-map-difficulty">-</strong></article>
-        </section>
-      </div>
-
+    <section class="speedrun-shell speedrun-map-v2-shell">
       <div id="speedrun-error" class="speedrun-error" hidden></div>
 
-      <section class="speedrun-section page-section speedrun-wr-card" aria-labelledby="sr-progression-title">
-        <div class="speedrun-section-heading">
-          <div><h2 id="sr-progression-title">World Record Progression</h2></div>
-        </div>
-        <p class="speedrun-section-subtitle">Shows only runs that broke the class record over time.</p>
-        <div id="sr-progression-status" class="speedrun-empty">Loading progression...</div>
-        <div id="sr-progression-content" class="speedrun-progression-layout" hidden>
-          <div class="speedrun-chart-wrap">
-            <canvas id="sr-progression-chart" aria-label="World record progression chart"></canvas>
-            <div id="sr-progression-tooltip" class="speedrun-chart-tooltip" hidden></div>
-          </div>
-          <div id="sr-progression-toggles" class="speedrun-class-toggles" aria-label="Toggle chart classes"></div>
-        </div>
-      </section>
+      <div class="speedrun-map-v2-layout">
+        <div class="speedrun-map-v2-primary">
+          <section class="speedrun-map-v2-hero" aria-labelledby="sr-map-title">
+            <img id="sr-map-hero-image" class="speedrun-map-v2-hero-image" src="assets/images/maps/NoMap.webp" alt="" fetchpriority="high">
+            <div class="speedrun-map-v2-hero-shade" aria-hidden="true"></div>
+            <div class="speedrun-map-v2-hero-copy">
+              <p id="speedrun-status" class="speedrun-map-v2-breadcrumb"><a href="speedrun-maps.html">Back to all speedrun maps</a></p>
+              <h1 id="sr-map-title">Speedrun Map</h1>
+              <p id="sr-map-subtitle" class="speedrun-map-v2-meta">Loading map details...</p>
+              <div class="speedrun-map-v2-actions">
+                <a id="sr-map-hero-replay" class="speedrun-map-v2-button primary" href="speedruns.html" hidden>
+                  <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5.2 14 10l-7 4.8z"></path></svg>
+                  Watch world record
+                </a>
+                <a class="speedrun-map-v2-button" href="speedrun-maps.html">Browse maps</a>
+              </div>
+            </div>
+          </section>
 
-      <section class="speedrun-section page-section speedrun-global-comparison-section" aria-labelledby="sr-global-comparison-title">
-        <div class="speedrun-section-heading compact">
-          <div>
-            <h2 id="sr-global-comparison-title">Global Comparison</h2>
-            <p class="speedrun-section-subtitle">Compare the selected class record with imported community baselines.</p>
-          </div>
-          <div class="speedrun-filters">
-            <select id="sr-map-class-filter" aria-label="Filter leaderboard and comparison by class">
-              <option value="">All Classes</option>
-            </select>
-          </div>
-        </div>
-        <div
-          id="sr-map-comparisons"
-          class="speedrun-global-comparison"
-          aria-live="polite"
-          aria-label="Selected class global comparison"
-        >
-          <div class="speedrun-comparison-message">Loading global comparison...</div>
-        </div>
-      </section>
+          <section class="speedrun-map-v2-stats" aria-label="Map statistics">
+            <article class="record"><span>World record</span><strong id="sr-map-wr">-</strong><small id="sr-map-wr-holder">No record</small></article>
+            <article><span>Attempts</span><strong id="sr-map-attempts">-</strong><small>Timer starts</small></article>
+            <article><span>Completed</span><strong id="sr-map-runs">-</strong><small>Valid finishes</small></article>
+            <article><span>Runners</span><strong id="sr-map-runners">-</strong><small>Unique players</small></article>
+            <article><span>Records</span><strong id="sr-map-records">-</strong><small>Leaderboard entries</small></article>
+            <article><span>Latest run</span><strong id="sr-map-last-run">-</strong><small>Most recent finish</small></article>
+          </section>
 
-      <section class="speedrun-section speedrun-columns speedrun-map-detail-cards">
-        <div>
-          <div class="speedrun-section-heading compact">
-            <div><h2>Leaderboard</h2></div>
+          <div class="speedrun-map-v2-tabs-wrap">
+            <div class="speedrun-map-v2-tabs" role="tablist" aria-label="Map speedrun views">
+              <button id="sr-tab-runs" type="button" role="tab" aria-selected="true" aria-controls="sr-panel-runs" data-speedrun-tab="runs">Runs</button>
+              <button id="sr-tab-progression" type="button" role="tab" aria-selected="false" aria-controls="sr-panel-progression" data-speedrun-tab="progression" tabindex="-1">Progression</button>
+              <button id="sr-tab-leaderboard" type="button" role="tab" aria-selected="false" aria-controls="sr-panel-leaderboard" data-speedrun-tab="leaderboard" tabindex="-1">Leaderboard</button>
+              <button id="sr-tab-comparison" type="button" role="tab" aria-selected="false" aria-controls="sr-panel-comparison" data-speedrun-tab="comparison" tabindex="-1">Comparison</button>
+            </div>
           </div>
-          <div class="speedrun-table-wrap leaderboard-table-wrap">
-            <table class="speedrun-table">
-              <thead><tr><th>Rank</th><th>Runner</th><th>Class</th><th>Time</th><th>Attempts</th><th>To #1</th><th class="speedrun-replay-heading">Replay</th><th>Set</th></tr></thead>
-              <tbody id="sr-map-leaderboard"></tbody>
-            </table>
-          </div>
+
+          <section id="sr-panel-runs" class="speedrun-map-v2-panel" role="tabpanel" aria-labelledby="sr-tab-runs">
+            <div class="speedrun-map-v2-panel-heading">
+              <div><h2>Recent runs</h2><p>Latest valid completions recorded by the NoName timer.</p></div>
+              <div class="speedrun-map-v2-filter-row">
+                <label for="sr-map-runs-class-filter">Class</label>
+                <select id="sr-map-runs-class-filter"><option value="">All classes</option></select>
+              </div>
+            </div>
+            <div class="speedrun-table-wrap speedrun-map-v2-table-wrap">
+              <table class="speedrun-table speedrun-map-v2-runs-table">
+                <thead><tr><th>Time</th><th>Player</th><th>Class</th><th>Date</th><th class="speedrun-replay-heading">Replay</th></tr></thead>
+                <tbody id="sr-map-recent"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="sr-panel-progression" class="speedrun-map-v2-panel speedrun-wr-card" role="tabpanel" aria-labelledby="sr-tab-progression" hidden>
+            <div class="speedrun-map-v2-panel-heading">
+              <div><h2 id="sr-progression-title">World record progression</h2><p>Only runs that established a new class record are shown.</p></div>
+            </div>
+            <div id="sr-progression-status" class="speedrun-empty">Loading progression...</div>
+            <div id="sr-progression-content" class="speedrun-progression-layout" hidden>
+              <div class="speedrun-chart-wrap">
+                <canvas id="sr-progression-chart" aria-label="World record progression chart"></canvas>
+                <div id="sr-progression-tooltip" class="speedrun-chart-tooltip" hidden></div>
+              </div>
+              <div id="sr-progression-toggles" class="speedrun-class-toggles" aria-label="Toggle chart classes"></div>
+            </div>
+            <div class="speedrun-map-v2-subsection">
+              <h3>Record breaks</h3>
+              <div id="sr-map-progression" class="speedrun-list progression"></div>
+            </div>
+          </section>
+
+          <section id="sr-panel-leaderboard" class="speedrun-map-v2-panel" role="tabpanel" aria-labelledby="sr-tab-leaderboard" hidden>
+            <div class="speedrun-map-v2-panel-heading">
+              <div><h2>Leaderboard</h2><p>Current personal best for every ranked player and class.</p></div>
+              <div class="speedrun-map-v2-filter-row">
+                <label for="sr-map-class-filter">Class</label>
+                <select id="sr-map-class-filter"><option value="">All classes</option></select>
+              </div>
+            </div>
+            <div class="speedrun-table-wrap speedrun-map-v2-table-wrap">
+              <table class="speedrun-table speedrun-map-v2-leaderboard-table">
+                <thead>
+                  <tr>
+                    <th>Rank</th><th>Time</th><th>Player</th><th>Class</th><th>Attempts</th>
+                    <th class="speedrun-concs-heading">
+                      <span class="speedrun-header-help"><span>Concs</span><button class="speedrun-info-button" type="button" aria-label="About concussion grenade limits" aria-describedby="sr-concs-help"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"></circle><path d="M8 7.1v4M8 4.65h.01"></path></svg></button><span id="sr-concs-help" class="speedrun-header-tooltip" role="tooltip">The number of concussion grenades allowed for this run. Set your default in-game with <code>/conc 0-4</code>, then use <code>/rs</code> to apply it.</span></span>
+                    </th>
+                    <th>To #1</th><th>Date</th><th class="speedrun-replay-heading">Replay</th>
+                  </tr>
+                </thead>
+                <tbody id="sr-map-leaderboard"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="sr-panel-comparison" class="speedrun-map-v2-panel speedrun-global-comparison-section" role="tabpanel" aria-labelledby="sr-tab-comparison" hidden>
+            <div class="speedrun-map-v2-panel-heading">
+              <div><h2 id="sr-global-comparison-title">Global comparison</h2><p>Compare the selected class record with imported community baselines.</p></div>
+              <div class="speedrun-map-v2-filter-row">
+                <label for="sr-map-comparison-class-filter">Class</label>
+                <select id="sr-map-comparison-class-filter"><option value="">Select a class</option></select>
+              </div>
+            </div>
+            <div id="sr-map-comparisons" class="speedrun-global-comparison" aria-live="polite" aria-label="Selected class global comparison"><div class="speedrun-comparison-message">Loading global comparison...</div></div>
+          </section>
         </div>
-        <div>
-          <div class="speedrun-section-heading compact"><div><h2>Recent Runs</h2></div></div>
-          <div id="sr-map-recent" class="speedrun-list"></div>
-        </div>
-        <div>
-          <div class="speedrun-section-heading compact"><div><h2>Record Breaks</h2></div></div>
-          <div id="sr-map-progression" class="speedrun-list progression"></div>
-        </div>
-      </section>
+
+        <aside class="speedrun-map-v2-sidebar" aria-label="Map details">
+          <section id="sr-map-preview-card" class="speedrun-map-v2-side-card preview">
+            <div class="speedrun-map-v2-side-heading"><h2>Map preview</h2></div>
+            <div class="speedrun-map-v2-preview-frame"><img id="sr-map-preview-image" src="assets/images/maps/NoMap.webp" alt="" loading="eager"></div>
+          </section>
+
+          <section class="speedrun-map-v2-side-card">
+            <div class="speedrun-map-v2-side-heading"><h2>Map information</h2></div>
+            <dl class="speedrun-map-v2-info">
+              <div><dt>Name</dt><dd id="sr-map-info-name">-</dd></div>
+              <div><dt>Category</dt><dd id="sr-map-info-category">-</dd></div>
+              <div><dt>Difficulty</dt><dd id="sr-map-difficulty">-</dd></div>
+              <div><dt>Status</dt><dd id="sr-map-info-status">-</dd></div>
+              <div><dt>Ruleset</dt><dd id="sr-map-info-ruleset">-</dd></div>
+            </dl>
+          </section>
+
+          <section class="speedrun-map-v2-side-card record">
+            <div class="speedrun-map-v2-side-heading"><h2>World record</h2></div>
+            <div id="sr-map-wr-spotlight" class="speedrun-map-v2-record-spotlight">
+              <strong id="sr-map-sidebar-wr">-</strong>
+              <div id="sr-map-sidebar-holder">No record yet</div>
+              <small id="sr-map-sidebar-class">-</small>
+            </div>
+            <a id="sr-map-sidebar-replay" class="speedrun-map-v2-button primary wide" href="speedruns.html" hidden>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5.2 14 10l-7 4.8z"></path></svg>
+              Watch replay
+            </a>
+          </section>
+        </aside>
+      </div>
     </section>
   </main>
+  <!-- Cloudflare Web Analytics -->
+  <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "a027c9b6496948cdbc21311387c802d5"}'></script>
+  <!-- End Cloudflare Web Analytics -->
 </body>
 </html>

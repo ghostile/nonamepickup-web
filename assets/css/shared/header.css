@@ -17,6 +17,11 @@
   align-items:center;
   gap:22px;
 }
+/* Keep navigation at native size even on pages with dense desktop content. */
+@media (min-width:901px){
+  .site-header{zoom:calc(1 / var(--desktop-ui-scale));}
+  .site-header-inner{min-height:52px;padding-top:7px;padding-bottom:7px;}
+}
 .nn-logo{font-family:'Orbitron',sans-serif;font-weight:800;font-size:42px;line-height:1;letter-spacing:-1px;display:flex;align-items:center;gap:.32em;user-select:none;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;-webkit-user-drag:none;}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 .logo-nn{color:#72d8ff;text-shadow:0 0 10px rgba(114,216,255,.55),0 0 22px rgba(114,216,255,.18);}

@@ -12,6 +12,11 @@ const {
   recordClassName,
   formatTimeMs
 } = require("../speedruns/domain");
+const {
+  buildSplitAnalysis,
+  deriveCheckpointEvents,
+  parseRecordedSplitEvents
+} = require("../speedruns/splits");
 
 const MAX_MAP_NAME_LENGTH = 64;
 const MAX_STEAM_ID_LENGTH = 35;
@@ -39,6 +44,16 @@ function eligibleRunSql(alias = "") {
 
 function eligibleRecordSql(alias = "") {
   return `${alias}best_time_ms >= ${MIN_VALID_RUN_TIME_MS}`;
+}
+
+function concLimitFields(row) {
+  const rawValue = row?.conc_limit ?? row?.concLimit;
+  const parsed = rawValue == null || rawValue === "" ? null : Number(rawValue);
+  const concLimit = Number.isInteger(parsed) && parsed >= 0 && parsed <= 4 ? parsed : null;
+  return {
+    concLimit,
+    conc_limit: concLimit
+  };
 }
 
 function createSpeedrunsRouter({ logRouteError }) {
@@ -262,10 +277,17 @@ function createSpeedrunsRouter({ logRouteError }) {
     const timeMs = row.time_ms == null ? null : Number(row.time_ms);
     const createdAt = iso(row.created_at);
     return {
+      id: row.id == null ? null : Number(row.id),
+      runId: row.id == null ? null : Number(row.id),
+      run_id: row.id == null ? null : Number(row.id),
       time_ms: timeMs,
       player_name: row.player_name || null,
       steamid: row.steamid || null,
+      discordId: row.discord_id || null,
+      discord_id: row.discord_id || null,
       created_at: createdAt,
+      hasReplay: Number(row.has_replay || 0) > 0,
+      has_replay: Number(row.has_replay || 0) > 0,
       improvement_ms: improvementMs == null ? null : Number(improvementMs),
       attempts_to_record: attemptsToRecord == null ? null : Number(attemptsToRecord),
       attemptsToRecord: attemptsToRecord == null ? null : Number(attemptsToRecord)
@@ -305,6 +327,7 @@ function createSpeedrunsRouter({ logRouteError }) {
       wr_gap_ms: wrGapMs,
       improvementMs: row.improvement_ms == null ? null : Number(row.improvement_ms),
       improvement_ms: row.improvement_ms == null ? null : Number(row.improvement_ms),
+      ...concLimitFields(row),
       achievedAt,
       achieved_at: achievedAt,
       hasReplay: Number(row.has_replay || 0) > 0,
@@ -485,6 +508,7 @@ function createSpeedrunsRouter({ logRouteError }) {
       countRows,
       recentRuns,
       recentWorldRecords,
+      featuredRecords,
       recentRecords,
       topRunners,
       popularMaps
@@ -555,6 +579,41 @@ function createSpeedrunsRouter({ logRouteError }) {
         WHERE ranked.rn = 1
         ORDER BY COALESCE(ranked.pb_created_at, ranked.updated_at) DESC, ranked.map ASC
         LIMIT 10
+      `),
+      speedrunQuery(`
+        SELECT
+          ranked.steamid,
+          l.discord_id,
+          ranked.player_name,
+          ranked.map,
+          ranked.class_id,
+          ranked.class_name,
+          ranked.best_time_ms,
+          ranked.pb_created_at,
+          ranked.updated_at,
+          EXISTS (
+            SELECT 1
+            FROM speedrun_ghosts g
+            JOIN speedrun_runs gr ON gr.id = g.run_id
+            WHERE g.map = ranked.map AND g.class_id = ranked.class_id AND g.steamid = ranked.steamid
+              AND g.ghost_time_ms = ranked.best_time_ms AND g.is_complete = 1
+              AND gr.ruleset = ${CURRENT_RULESET}
+            LIMIT 1
+          ) AS has_replay
+        FROM (
+          SELECT r.*, ROW_NUMBER() OVER (
+            PARTITION BY r.map
+            ORDER BY r.best_time_ms ASC, COALESCE(r.pb_created_at, r.updated_at) ASC, r.steamid ASC, r.class_id ASC
+          ) AS rn
+          FROM speedrun_records r
+          WHERE r.ruleset = ${CURRENT_RULESET}
+            AND ${eligibleRecordSql("r.")}
+        ) ranked
+        LEFT JOIN speedrun_player_links l ON l.steamid = ranked.steamid
+        WHERE ranked.rn = 1
+          AND (ranked.player_name IS NOT NULL OR ranked.steamid IS NOT NULL)
+        ORDER BY COALESCE(ranked.pb_created_at, ranked.updated_at) DESC, ranked.map ASC
+        LIMIT 5
       `),
       speedrunQuery(`
         SELECT
@@ -643,6 +702,7 @@ function createSpeedrunsRouter({ logRouteError }) {
       recentRuns: recentRuns.map(mapRun),
       recentRecords: recentRecords.map(row => mapRecord(row)),
       recentWorldRecords: recentWorldRecords.map(row => mapRecord(row)),
+      featuredRecords: featuredRecords.map(row => mapRecord(row)),
       topRunners: topRunners.map(row => ({
       discordId: row.discord_id,
       playerName: row.player_name || row.discord_id,
@@ -663,6 +723,9 @@ function createSpeedrunsRouter({ logRouteError }) {
   async function replayResultForRun(runId, routeLabel) {
     const metadataRows = await speedrunQuery(`
       SELECT
+        g.*,
+        r.*,
+        r.ruleset,
         g.id AS ghost_id,
         g.run_id,
         g.map,
@@ -743,6 +806,47 @@ function createSpeedrunsRouter({ logRouteError }) {
     const classId = Number(metadata.class_id);
     const projectileTiming = replayTimingWindow(frames, replayTimeMs, zones?.finish);
     const projectileUsage = summarizeProjectileUsage(projectileFrames, projectileTiming);
+    const recordedSplitEvents = parseRecordedSplitEvents(firstValue(metadata, [
+      "split_events",
+      "checkpoint_events",
+      "checkpoint_times",
+      "timing_events",
+      "split_data",
+      "events"
+    ]));
+    let splitEvents = recordedSplitEvents;
+    let splitSource = "recorded";
+    if (!splitEvents.length && zones?.checkpoints?.length) {
+      const timing = replayTimingWindow(frames, replayTimeMs, zones.finish);
+      const derivedCheckpoints = deriveCheckpointEvents({
+        frames,
+        zones,
+        startTime: timing.startTime * 1000,
+        finishTime: replayTimeMs
+      });
+      if (derivedCheckpoints.length === zones.checkpoints.length) {
+        splitEvents = [
+          { kind: "start", elapsedMs: 0 },
+          ...derivedCheckpoints,
+          { kind: "finish", elapsedMs: replayTimeMs }
+        ];
+        splitSource = "replay-derived";
+      }
+    }
+    const splitAnalysis = buildSplitAnalysis({
+      timeMs: replayTimeMs,
+      events: splitEvents
+    });
+    splitAnalysis.source = splitSource;
+    splitAnalysis.precision = splitAnalysis.available
+      ? splitSource === "recorded" ? "ms" : "frame"
+      : null;
+    const splitMetadata = {
+      map: metadata.map,
+      classId,
+      ruleset: Number(metadata.ruleset),
+      checkpointSequence: (zones?.checkpoints || []).map(checkpoint => Number(checkpoint.checkpointNumber))
+    };
 
     return {
       status: 200,
@@ -750,11 +854,17 @@ function createSpeedrunsRouter({ logRouteError }) {
         runId: Number(metadata.run_id),
         ghostId: Number(ghostId),
         map: metadata.map,
+        ruleset: Number(metadata.ruleset),
         classId,
         className: className(metadata) || CLASS_NAMES[classId] || `Class ${classId}`,
         playerName: metadata.player_name || null,
         steamid: metadata.steamid || null,
         timeMs: replayTimeMs,
+        splitMetadata,
+        splits: {
+          ...splitAnalysis,
+          unavailableReason: splitAnalysis.available ? null : "recorded_checkpoint_events_unavailable"
+        },
         frameInterval: frameInterval == null ? inferFrameInterval(frames) : Number(frameInterval),
         zones,
         frames,
@@ -822,7 +932,6 @@ function createSpeedrunsRouter({ logRouteError }) {
         m.finish_y,
         m.finish_z,
         COALESCE(run_stats.totalRuns, 0) AS totalRuns,
-        COALESCE(attempt_stats.totalAttempts, 0) AS totalAttempts,
         COALESCE(run_stats.totalRunners, 0) AS totalRunners,
         COALESCE(record_stats.totalRecords, 0) AS totalRecords,
         run_stats.lastRunAt,
@@ -1103,13 +1212,21 @@ function createSpeedrunsRouter({ logRouteError }) {
       SELECT
         r.id,
         r.steamid,
+        l.discord_id,
         r.player_name,
         r.map,
         r.class_id,
         r.class_name,
         r.time_ms,
-        r.created_at
+        r.created_at,
+        EXISTS (
+          SELECT 1
+          FROM speedrun_ghosts g
+          WHERE g.run_id = r.id AND g.is_complete = 1
+          LIMIT 1
+        ) AS has_replay
       FROM speedrun_runs r
+      LEFT JOIN speedrun_player_links l ON l.steamid = r.steamid
       WHERE r.map = ?
         AND r.ruleset = ${CURRENT_RULESET}
         AND r.class_id IS NOT NULL
@@ -1250,6 +1367,20 @@ function createSpeedrunsRouter({ logRouteError }) {
           r.best_time_ms,
           r.pb_created_at,
           r.updated_at,
+          (
+            SELECT matching_run.conc_limit
+            FROM speedrun_runs matching_run
+            WHERE matching_run.ruleset = ${CURRENT_RULESET}
+              AND matching_run.map = r.map
+              AND matching_run.class_id <=> r.class_id
+              AND matching_run.steamid <=> r.steamid
+              AND matching_run.time_ms = r.best_time_ms
+            ORDER BY
+              CASE WHEN COALESCE(r.pb_created_at, r.updated_at) IS NULL THEN 1 ELSE 0 END,
+              ABS(TIMESTAMPDIFF(MICROSECOND, matching_run.created_at, COALESCE(r.pb_created_at, r.updated_at))),
+              matching_run.id DESC
+            LIMIT 1
+          ) AS conc_limit,
           COALESCE(attempt_stats.attempts, 0) AS attempts,
           EXISTS (
             SELECT 1
@@ -1374,6 +1505,7 @@ function createSpeedrunsRouter({ logRouteError }) {
       category: mapRow.category || "other",
       difficulty: mapRow.difficulty == null ? null : Number(mapRow.difficulty),
       enabled: Number(mapRow.enabled || 0) === 1,
+      ruleset: CURRENT_RULESET,
       zones: {
         start: { x: mapRow.start_x, y: mapRow.start_y, z: mapRow.start_z },
         finish: { x: mapRow.finish_x, y: mapRow.finish_y, z: mapRow.finish_z }
@@ -1931,4 +2063,4 @@ function createSpeedrunsRouter({ logRouteError }) {
   return router;
 }
 
-module.exports = { createSpeedrunsRouter };
+module.exports = { concLimitFields, createSpeedrunsRouter };
