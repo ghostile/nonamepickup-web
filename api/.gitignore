@@ -1,3 +1,4 @@
 api2.js
 # VS Code workspace
 *.code-workspace
+.dev-data/

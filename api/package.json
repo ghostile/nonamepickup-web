@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "dev": "node src/devServer.js",
+    "dev:seed": "node scripts/seedDevDb.js",
+    "dev:reset": "node scripts/seedDevDb.js --reset",
     "test": "node --test test/*.test.js",
     "benchmark:pickup-replay": "node scripts/benchmarkPickupReplayWorker.js",
     "import:external-baselines": "node externalBaselineImport.js",
