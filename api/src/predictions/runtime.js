@@ -30,9 +30,7 @@ function predictionRuntime(env = process.env) {
         !/^\d{1,25}$/.test(row.discordId) || typeof row.displayName !== "string" ||
         !row.displayName.trim() || row.displayName.length > 100) ||
         new Set(consents.map(row => row.discordId)).size !== consents.length) throw new Error("Invalid prediction consent configuration");
-    const router = createPredictionsRouter({ mode, repository, approvedPolicy, consents,
-      authOptions: { clientId: env.PREDICTIONS_DISCORD_CLIENT_ID,
-        clientSecret: env.PREDICTIONS_DISCORD_CLIENT_SECRET, redirectUri: env.PREDICTIONS_DISCORD_REDIRECT_URI } });
+    const router = createPredictionsRouter({ mode, repository, approvedPolicy, consents });
     return { router, close() { db.close(); } };
   } catch (error) { db.close(); throw error; }
 }

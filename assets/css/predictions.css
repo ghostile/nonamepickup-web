@@ -44,10 +44,7 @@
 .prediction-note { max-width:75ch; color:#a8bdd2; font-size:12px; line-height:1.8; margin:20px 0; }
 .prediction-note strong { color:#d7e8fa; }
 .prediction-alert { padding:16px 18px; margin-bottom:20px; border:1px solid #766339; border-radius:10px; background:#211d16; color:#ead9ad; font-size:13px; line-height:1.7; }
-.prediction-account-head { display:flex; justify-content:space-between; align-items:center; gap:16px; margin:0 0 18px; }
-.prediction-account-head h2,.prediction-rules h2 { color:#e5f2ff; font-size:20px; font-weight:750; margin:0 0 12px; }
-.prediction-status { display:inline-block; padding:5px 9px; border:1px solid #3d5874; border-radius:6px; color:#b8d6ef; background:#14273a; font-size:12px; }
-.prediction-status.review { color:#ffdf88; border-color:#766339; background:#211d16; }
+.prediction-rules h2 { color:#e5f2ff; font-size:20px; font-weight:750; margin:0 0 12px; }
 .prediction-rules { display:grid; grid-template-columns:minmax(0,1fr) minmax(240px,.42fr); gap:48px; }
 .prediction-rules section { margin-bottom:32px; }
 .prediction-rules p,.prediction-rules li { color:#acc2d9; font-size:14px; line-height:1.9; max-width:72ch; }
@@ -55,11 +52,6 @@
 .prediction-rules aside { border-top:1px solid #36526e; padding-top:22px; }
 .prediction-rules aside strong { color:#7bdcff; font-size:28px; font-variant-numeric:tabular-nums; }
 .prediction-page-footer { border-top:1px solid #263c53; margin-top:32px; padding:22px 0; color:#a8bdd2; font-size:12px; }
-.prediction-activity { margin-top:32px; }
-.prediction-activity summary { color:#d7e8fa; font-size:18px; font-weight:700; cursor:pointer; padding:12px 0; }
-.prediction-activity-list { list-style:none; padding:0; margin:0; }
-.prediction-activity-list li { display:flex; justify-content:space-between; gap:20px; padding:13px 0; border-bottom:1px solid #263c53; font-size:13px; }
-.prediction-activity-list small { display:block; color:#a8bdd2; margin-top:5px; }
 .predictions-page :focus-visible { outline:2px solid #8adfff; outline-offset:4px; }
 .predictions-page ::selection { background:#28587e; color:#fff; }
 .prediction-shell [hidden] { display:none !important; }
@@ -72,5 +64,4 @@
   .prediction-overview dd { font-size:25px; }
   .prediction-rules { grid-template-columns:1fr; gap:12px; }
   .prediction-table th,.prediction-table td { padding:14px; }
-  .prediction-account-head { flex-wrap:wrap; }
 }

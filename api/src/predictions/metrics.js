@@ -14,9 +14,9 @@ function summarize(bets, markets, credits) {
   for (const row of credits) creditByMarket.set(row.market_id,
     safe((creditByMarket.get(row.market_id) || 0) + safe(row.amount)));
   const settledIds = new Set();
-  let correct = 0, decided = 0, finalized = 0, reviewGames = 0;
-  const profits = [], reviewProfits = [];
-  const history = bets.map(bet => {
+  let correct = 0, decided = 0, finalized = 0;
+  const profits = [];
+  for (const bet of bets) {
     const market = marketById.get(bet.market_id);
     if (!market) throw new Error("Prediction market missing");
     const earned = bet.status === "settled" && market.settlement_version > 0;
@@ -35,23 +35,10 @@ function summarize(bets, markets, credits) {
         decided++;
         if (bet.pick === market.result) correct++;
       }
-    } else if (earned) {
-      reviewGames++;
-      reviewProfits.push(net);
     }
-    return { matchId: market.match_id, revision: market.revision,
-      pick: bet.pick, stake: safe(bet.stake), credits: earned ? credited : null,
-      netProfit: net, status: market.state === "review_required" ? "review_required" : bet.status,
-      outcome: market.result || null, refunded, ruleVersion: market.rule_version,
-      closesAt: market.closes_at, updatedAt: Math.max(bet.updated_at, market.closed_at || 0,
-        market.latest_transaction_at || 0),
-      marketState: market.state };
-  }).sort((a, b) => b.updatedAt - a.updatedAt || b.revision - a.revision || a.matchId.localeCompare(b.matchId));
-  const personalLimit = safe(100 + 10 * settledIds.size);
+  }
   return { netProfit: sum(profits), settledGames: finalized,
-    progressionGames: settledIds.size, personalLimit,
-    winRate: decided ? correct / decided : null, correct, decided,
-    reviewGames, reviewNetProfit: sum(reviewProfits), history };
+    winRate: decided ? correct / decided : null };
 }
 
 function standings(rows, { search = "", sort = "netProfit", direction = "desc", page = 1, pageSize = 20 } = {}) {

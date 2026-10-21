@@ -13,7 +13,7 @@ app.use("/api/predictions", createPredictionsRouter({ mode: "preview" }));
 // Shared main.js expects these public shell endpoints. Keep this preview synthetic.
 app.get(["/api/supporters", "/api/queue", "/api/players"], (req, res) => res.json({ ok: true, data: [] }));
 app.use("/assets", express.static(path.resolve(__dirname, "../../assets")));
-for (const page of ["predictions.html", "my-predictions.html", "prediction-rules.html"]) {
+for (const page of ["predictions.html", "prediction-rules.html"]) {
   app.get(`/${page}`, (req, res) => res.sendFile(path.resolve(__dirname, "../..", page)));
 }
 app.get("/", (req, res) => res.redirect("/predictions.html"));
