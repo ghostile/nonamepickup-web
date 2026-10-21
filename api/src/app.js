@@ -83,6 +83,15 @@ function createApp({
   // CORS
   app.use(createCorsMiddleware(CORS_ORIGIN));
 
+  // Prediction staging is isolated and disabled unless explicitly configured.
+  // Keep existing rate limits, but bypass analytics for identity/private responses.
+  if (process.env.PREDICTIONS_WEB_MODE && process.env.PREDICTIONS_WEB_MODE !== "off") {
+    const { predictionRuntime } = require("./predictions/runtime");
+    const predictions = predictionRuntime();
+    app.use("/api/predictions", predictions.router);
+    app.locals.closePredictions = predictions.close;
+  }
+
   // Website analytics logging
   app.use(createAnalyticsMiddleware({
     analyticsInsertStmt,

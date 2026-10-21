@@ -188,6 +188,7 @@ function shutdown(signal) {
   server.close(async () => {
     try {
       liveRelay.close();
+      app.locals.closePredictions?.();
       pickupLive.close();
       db.close();
       await closePickupPool();

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Prediction Standings | NoName TFC Pickups</title>
+  <link rel="icon" href="/assets/images/favicon.ico">
+  <link rel="stylesheet" href="assets/css/app.css?v=20261011universalscale1">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260618i">
+  <link rel="stylesheet" href="assets/css/predictions.css?v=20261021a">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Orbitron:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="assets/js/main.js?v=20261004nav1" defer></script>
+  <script src="assets/js/predictions.js?v=20261021a" defer></script>
+</head><body class="bg-[#0a0c10] matches-page predictions-page" data-prediction-view="standings"><header class="site-header">
+    <div class="site-header-inner">
+      <div class="nn-logo" aria-label="NoName TFC">
+        <span class="logo-nn">NN</span>
+        <span class="logo-slash">//</span>
+        <span class="logo-tfc">TFC</span>
+      </div>
+
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="index.html">Home</a>
+        <a href="matches.html">Matches</a>
+        <a href="leaderboard.html">Players</a>
+        <a href="speedruns.html">Speedruns</a>
+        <a href="live.html" class="nav-live">Live</a>
+        <details class="nav-more">
+          <summary>More<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m4 6 4 4 4-4"/></svg></summary>
+          <div class="nav-more-links">
+            <a href="analytics.html">Analytics</a>
+            <a href="compare.html">Compare players</a>
+            <a href="defense-iq.html">Defense IQ</a>
+            <a href="kicked.html">Missed votes</a>
+            <a href="coolest-dude.html">Community honors</a>
+            <a href="mvp-breakdown.html">MVP breakdown</a>
+            <a href="tracker.html">Identity history</a>
+            <a href="live/">Browser spectator</a>
+          </div>
+        </details>
+      </nav>
+
+      <input
+        id="global-search"
+        type="text"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        placeholder="Search players..."
+        aria-label="Search players"
+        class="site-search"
+      >
+    </div>
+  </header><main class="page-main-spacing max-w-[1500px] mx-auto px-8 py-10"><section class="prediction-shell"><div class="prediction-banner" id="prediction-banner" role="note"><strong>Preview · fictional data</strong><span>Demo accounts and points. Live prediction data is not connected.</span></div><div class="prediction-hero"><div><h1>Prediction Standings</h1><p>Pick the outcome. Climb the standings. Fictional prediction points live in their own league, separate from Elo.</p></div><span class="prediction-updated" id="prediction-updated" role="status">Connecting to preview…</span></div>
+<nav class="prediction-tabs" aria-label="Predictions"><a href="predictions.html" aria-current="page">Standings</a><a href="my-predictions.html" >My Predictions</a><a href="prediction-rules.html" >How it works</a></nav>
+<div class="prediction-alert" id="prediction-stale" hidden>These preview standings are stale. Check the updated time before comparing results.</div>
+<dl class="prediction-overview"><div><dt>Ranking metric</dt><dd>Net profit</dd><small>Finalized predictions only</small></div><div><dt>Entry threshold</dt><dd>10 games</dd><small>Proposed live policy</small></div><div><dt>Equal profit</dt><dd>Shared rank</dd><small>Competition ranking: 1, 1, 3</small></div><div><dt>Place predictions</dt><dd>Discord</dd><small>Private picks. Bot points.</small></div></dl>
+<div class="prediction-toolbar"><label for="prediction-search">Find a player<input id="prediction-search" type="search" placeholder="Search standings…" maxlength="100" autocomplete="off"></label><label for="prediction-size">Rows per page<select id="prediction-size"><option value="10">10</option><option value="20" selected>20</option><option value="50">50</option></select></label></div>
+<div class="prediction-table-wrap" role="region" aria-label="Prediction standings" tabindex="0"><table class="prediction-table" id="prediction-table" aria-busy="true"><caption class="sr-only">Fictional prediction standings. Activate a column heading to sort.</caption><thead><tr><th scope="col" aria-sort="none"><button type="button" data-sort="rank">Rank</button></th><th scope="col" aria-sort="none"><button type="button" data-sort="displayName">Player</button></th><th scope="col" aria-sort="descending"><button type="button" data-sort="netProfit">Net profit</button></th><th scope="col" aria-sort="none"><button type="button" data-sort="settledGames">Settled games</button></th><th scope="col" aria-sort="none"><button type="button" data-sort="winRate">Correct picks</button></th></tr></thead><tbody id="prediction-body"><tr><td colspan="5" class="prediction-state">Loading predictions…</td></tr></tbody></table></div>
+<div class="prediction-pager"><span id="prediction-count" role="status" aria-live="polite">Loading…</span><div><button class="prediction-button" id="prediction-prev" type="button" disabled>Previous</button><span id="prediction-page">Page 1 of 1</span><button class="prediction-button" id="prediction-next" type="button" disabled>Next</button></div></div>
+<p class="prediction-note"><strong>What counts?</strong> Net profit is actual retained betting credits minus settled stakes. Grants, owner adjustments, player rewards and pregame refunds do not affect this score. House-funded correction credits count once; reviewed results are separate. Correct picks uses the latest finalized result and excludes no-correct-bettor refunds.</p>
+<p class="prediction-note">Preview columns and the 10-game threshold are proposed. Public participation and fields need approval before live standings are enabled. No individual picks, stakes or balances appear in public standings.</p><footer class="prediction-page-footer">NoName TFC Pickups · Fictional bot points · Predictions remain in Discord</footer></section></main><noscript><p>Enable JavaScript to load prediction standings and private account data.</p></noscript></body></html>
