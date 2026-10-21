@@ -1,7 +1,5 @@
 .predictions-page { color:#dbeafe; font-family:'Inter',system-ui,sans-serif; }
 .prediction-shell { position:relative; }
-.prediction-banner { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:12px 18px; margin-bottom:28px; border:1px solid #766339; border-radius:12px; background:#211d16; color:#ead9ad; font-size:13px; }
-.prediction-banner strong { color:#ffdf88; }
 .prediction-hero { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:30px; }
 .prediction-hero h1 { font-family:'Orbitron',sans-serif; font-size:clamp(28px,4vw,52px); font-weight:900; color:#f8fafc; margin:0 0 14px; line-height:1.2; text-wrap:balance; }
 .prediction-hero p { max-width:65ch; color:#a8bdd2; line-height:1.7; margin:0; }

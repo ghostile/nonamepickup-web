@@ -1,43 +1,48 @@
-# Prediction website
+# Live prediction standings
 
-The website displays standings and rules. There is no sign-in, OAuth application, per-player prediction page, private history API or session cookie. Discord IDs are internal database/consent identifiers only; visitors do not supply an identity. Private picks, stakes, balances and history remain in Discord.
+The website has public standings and rules only. No Discord login, OAuth credentials, private account pages or per-user history APIs. Discord IDs remain internal matching keys.
 
-## Local preview
+## Approved publication policy
 
-From api/, install the existing dependencies with npm ci, then run npm run preview:predictions. Open http://127.0.0.1:4173/predictions.html or /prediction-rules.html. The loopback preview never loads .env, opens a database or starts the main API/bot. All preview amounts/names are fictional. Append ?state=empty, ?state=unavailable or ?state=stale to view those standings states. Existing site navigation is preserved; unrelated site pages are not served by this isolated preview.
+On October 21 the owner explicitly approved including everyone with no minimum games. Include every existing prediction account, including zero-settlement and inactive accounts. Do not initialize accounts for people who have never used predictions. Public fields are exactly rank, displayName, netProfit, settledGames and winRate. Picks, stakes, balances, individual payouts and history stay private. No consent file or per-player opt-in setup is required.
+
+## Server update
+
+The checked-in PM2 configuration names tfcapi, uses /var/www/tfcbot/api as its working directory, runs api.js and sets ELO_DB=/root/tfcbot/elo.db. The user confirmed the bot and API share a server. Update with:
+
+    cd /var/www/tfcbot
+    git pull --ff-only
+    cd api
+    pm2 restart ecosystem.config.js --only tfcapi --update-env
+
+The ecosystem explicitly sets PREDICTIONS_WEB_MODE=live. The API also defaults to live when this variable is absent; PREDICTIONS_WEB_MODE=off disables mounting. Remove any old preview setting from the service/.env or use the ecosystem restart command so PM2 applies live. Old PREDICTIONS_PUBLIC_POLICY, PREDICTIONS_CONSENT_FILE and PREDICTIONS_DISCORD_* variables are no longer read and can be removed.
+
+Open /predictions.html. The browser reads /api/predictions/standings on load and every 15 seconds while visible. It refreshes after returning to the tab and preserves the selected search/sort/page. On failed background refresh it keeps the last successful rows and timestamp with a stale warning; initial failures show an unavailable message with retry. Requests time out after 10 seconds. Hidden pages do not poll. Read timestamps describe the last successful database snapshot request, not the time the most recent bet was placed.
+
+The fictional dataset, preview command/server, query-driven demo states and preview labels have been removed. No API response fabricates real standings when the database is unavailable.
+
+## Read-only database integration
+
+Live reads use a separate better-sqlite3 connection to the existing configured ELO_DB, with readonly:true and fileMustExist:true. Never instantiate the bot PredictionStore (its constructor migrates schema), change WAL pragmas, grant points or copy a live SQLite/WAL file into the website. Database reads use a consistent transaction. The required prediction tables/schema version 2 must already exist from the deployed approved bot.
+
+Names use ratings.display_name, then available discord_names display/global/username fields. Missing names show Unknown player; the public API never falls back to a raw Discord ID. Names are rendered with textContent. Zero finalized games means zero profit and unknown correct-pick rate (an em dash), not an invented result.
+
+The connection/schema is loaded lazily. Missing files, permissions, native bindings or unavailable schema yield fixed 503 error codes on standings and retry connection setup after 30 seconds, without crashing the main website API. Logs contain only fixed failure categories, not paths, queries or user data. Successful initialization reuses the read-only connection; database file replacement requires an API restart.
 
 ## API contract (version 1)
 
-Only GET /api/predictions/config and GET /api/predictions/standings exist. Other paths return 404. There are no financial or consent mutation endpoints. Responses use Cache-Control: private, no-store, max-age=0.
+GET /api/predictions/config returns columns, ranking (metric=netProfit, ties=competition, minimumGames=0, participation=all_accounts, inactive=included) and wagering=discord. GET /api/predictions/standings returns columns, rows, page, pageSize, pages and total. Other prediction paths return 404. No writes, authentication or account endpoints exist.
 
-Success: { ok:true, data, meta:{ contractVersion:1, mode, synthetic, updatedAt, stale } }. Error: { ok:false, error:<fixed code> }. updatedAt is Unix milliseconds. Ratios are 0–1 or null. Point values are safe whole integers. Errors contain no database details or private data.
+Success: { ok:true, data, meta:{ contractVersion:1, mode:live, updatedAt, refreshIntervalMs:15000 } }. updatedAt is Unix milliseconds. Ratios are 0–1 or null; points are safe whole integers. Responses use Cache-Control:no-store. Errors contain only { ok:false, error:<fixed code> }. Errors distinguish invalid_query (400), predictions_database_unavailable (503), predictions_schema_unavailable (503), predictions_configuration_unavailable (503), and generic predictions_unavailable (503).
 
-/config returns column keys/labels/types, proposed ranking policy, publicPolicy, publicAvailable and wagering=discord. /standings returns columns, rows, page, pageSize, pages and total.
+Query: page (1–1,000,000), pageSize (1–100, default 20), search (max 100 characters), sort (rank, displayName, netProfit, settledGames, winRate), direction (asc/desc). Out-of-range pages clamp to the last page. Rank is always by net profit even under alternate sorting. Equal profit shares competition rank (1,1,3); search never recomputes rank. Null correct-pick rate sorts last both ways.
 
-Public rows contain exactly rank, displayName, netProfit, settledGames and winRate. No Discord IDs, individual picks/stakes, balances, payout details or account history are returned. Rank always represents net profit, even under alternate sorting. Equal profit shares competition rank (1,1,3); deterministic name ordering breaks display-order ties. Search does not recalculate rank.
+## Accounting
 
-Query: page (1–1,000,000), pageSize (1–100, default 20), search (max 100 characters), sort (rank, displayName, netProfit, settledGames, winRate), direction (asc/desc). Invalid queries return 400; pages beyond the end clamp to the last page. Unknown win rate sorts last in either direction.
+Net profit is actual retained account-specific settlement/correction credits for finalized markets with that account's settled bet, minus its retained stake once. Operation/allocation snapshots and house_funding markers are not income. Grants, owner adjustments, player-only rewards and cancelled/void/pregame refunds are excluded. Bot eligibility prevents official players betting their own market. Positive house-funded betting corrections count once as retained credits.
 
-## Metrics
+Correctness uses the latest approved result, which may differ from retained historical credits after correction. Correctly predicted ties count as correct picks. No-correct-bettor refunds count as finalized settled games but are excluded from the accuracy denominator. Reviewed markets are excluded from finalized scores. Retained prediction records remain usable after match-table deletion. Ambiguous multiple settled revisions for one account/game fail closed instead of multiplying a stake or credit.
 
-Net profit = actual retained account-specific settlement/correction credits for finalized markets with that account's settled bet, minus its retained stake once. Operation/allocation snapshots and house_funding markers are never income. Grants, owner adjustments, player-only rewards and cancelled/void/pregame refunds do not contribute. Bot eligibility prevents players betting their own market. Positive house-funded betting corrections count once as actual retained credits.
+## Verification limits
 
-Correctness uses the latest approved result; corrected accuracy can differ from retained cash credits. Correctly predicted ties count as correct. No-correct-bettor refunds count as finalized settled games but are excluded from the accuracy denominator. Under-review markets stay out of finalized statistics. Retained prediction history works independently of deleted match rows. Multiple settled revisions for the same account/game fail closed as ambiguous data, preventing multiplied stakes or credits.
-
-The proposed qualification minimum is 10 finalized games, with inactive opted-in players included. These publication choices remain pending owner approval; removing website login does not approve exposing everyone's statistics.
-
-## Live server configuration
-
-The checked-in api/ecosystem.config.js names the PM2 app tfcapi, uses /var/www/tfcbot/api as cwd, runs api.js, and sets ELO_DB=/root/tfcbot/elo.db. The user confirmed the website API and bot share a server. Actual running PM2 settings and database schema still need verification on that server.
-
-PREDICTIONS_WEB_MODE defaults off; preview mounts synthetic routes; live opens a separate read-only connection to the existing configured ELO_DB. The adapter requires prediction schema version 2, never instantiates the bot store/migrations, never grants points, and never changes the database or its WAL mode. No browser can initialize an account. Schema source inspected was the working codex/match-predictions bot checkout; confirm the deployed approved bot version before activation.
-
-Real public standings remain disabled unless PREDICTIONS_PUBLIC_POLICY=net-profit-v1-approved. PREDICTIONS_CONSENT_FILE must point to an operator-managed JSON array outside the website repository and configured PUBLIC_DIR. Entries: { "discordId":"123456789012345678", "displayName":"Approved display name", "optedIn":true }. These IDs associate existing records; no Discord connection or login is needed. Add entries only after approved consent/field policy; missing list yields empty standings. Duplicate/invalid entries or files inside served directories reject startup. Remove an entry and restart to withdraw it. No self-service account/consent flow exists.
-
-No PREDICTIONS_DISCORD_* credentials are required or read. Remove previously configured prediction OAuth secrets/callback registrations if they were created solely for this website feature.
-
-## Delivery and verification
-
-Branch: codex/prediction-website-preview. No live activation, merge or deployment performed. Existing website navigation/sitemap has not promoted the prediction pages. Standings/rules use the incumbent NN // TFC template. Screenshots live in docs/review-artifacts/predictions; obsolete account screenshots were removed with the feature.
-
-Repository instructions prohibit creating/changing/running tests. Verification uses JavaScript syntax checks, whitespace checks, source review and desktop/mobile preview inspection. These do not validate real financial calculations against fixtures. Actual database access, deployed schema/PM2 settings, privacy policy and live-server permissions remain unverified. Production integration must use the actual configured database and explicit approved publication fields; never copy a live SQLite file/WAL into a public directory.
+No tests are created, changed or run per AGENTS.md. Validation uses JavaScript syntax/whitespace checks, static review and desktop/mobile visual inspection of the honest unavailable state. No live server database, deployed schema, actual server file permissions or live monetary results have been verified from this Windows workspace. The server restart above is required to activate the pushed code. No server commands or production database changes were performed by the agent.

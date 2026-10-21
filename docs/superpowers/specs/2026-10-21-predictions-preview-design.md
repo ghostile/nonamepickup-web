@@ -1,15 +1,13 @@
-# Prediction website design
+# Live prediction standings design
 
-Updated October 21 after the user approved removing My Predictions and Discord login.
+## Approved scope
 
-## Scope
+Owner approved live standings for everyone with no minimum games on October 21. Include every existing prediction account, including zero-settlement accounts. No signup, opt-in file, OAuth, per-player page or private endpoints. Published fields remain name, rank, net prediction profit, finalized settled games and correct-pick rate. Private financial details stay in Discord.
 
-Keep the standard NoNamePickups design with public standings and rules only. Remove the private prediction page, OAuth module/configuration, private account/history endpoints, synthetic private account data, account UI code/styles and obsolete screenshots. Discord IDs remain internal identifiers for associating bot records; no visitor identity is needed. Picks/stakes/balances/history stay in Discord. Preserve financial accounting logic for aggregate standings.
+## Implementation
 
-## Integration
-
-The read-only ELO adapter and isolated preview remain. Same-server deployment is confirmed by the user; checked-in PM2 config names tfcapi with ELO_DB=/root/tfcbot/elo.db. Do not activate production or broaden publication policy as part of removing login. Public fields remain rank, displayName, netProfit, settledGames and winRate. Real publication requires the existing explicit approval switch/consent allowlist until the owner chooses a different policy.
+Remove the fictional dataset/server, demo states and preview labels. Query configured ELO_DB read-only, join existing saved names by internal Discord ID and never create accounts. Preserve existing aggregate metric definitions and NN // TFC design. Browser refreshes every 15 seconds while visible; preserve last successful rows with an honest warning on background outage. Connection/schema failures only affect prediction routes and retry after 30 seconds. PM2 tfcapi explicitly uses live mode and existing ELO_DB=/root/tfcbot/elo.db. No deployment performed from this workspace.
 
 ## Verification
 
-No tests created, modified or run per AGENTS.md. Check syntax/whitespace, inspect standings/rules desktop and mobile, and review removal for stale references and private response exposure. Keep the feature branch; no merge/deployment.
+No tests created/modified/run per AGENTS.md. Syntax, whitespace, static review, and desktop/mobile unavailable-state inspection. Actual server data/schema/permissions remain unverified.

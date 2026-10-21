@@ -2,7 +2,6 @@
 
 const express = require("express");
 const { standings } = require("./metrics");
-const { publicRows } = require("./preview");
 
 const COLUMNS = [
   { key: "rank", label: "Rank", type: "integer" },
@@ -25,43 +24,32 @@ function pageQuery(query) {
       (query.search !== undefined && (typeof query.search !== "string" || query.search.length > 100))) throw new Error("invalid_query");
   return { page, pageSize, sort, direction, search: query.search || "" };
 }
-function createPredictionsRouter({ mode = "off", repository = null, approvedPolicy = false,
-  consents = [], minimumGames = 10 } = {}) {
-  if (!["off", "preview", "live"].includes(mode)) throw new Error("Unknown prediction mode");
+function createPredictionsRouter({ mode = "live", getRepository } = {}) {
   const router = express.Router();
   router.use((req, res, next) => {
-    res.set({ "Cache-Control": "private, no-store, max-age=0", "Pragma": "no-cache",
-      "X-Robots-Tag": "noindex, nofollow", "Referrer-Policy": "no-referrer" });
+    res.set({ "Cache-Control": "no-store, max-age=0", "Pragma": "no-cache",
+      "Referrer-Policy": "no-referrer" });
     if (mode === "off") return res.status(404).json({ ok: false, error: "predictions_disabled" });
     next();
   });
-  const envelope = (data, state) => ({ ok: true, data, meta: { contractVersion: 1,
-    mode, synthetic: mode === "preview",
-    updatedAt: Date.now() - (mode === "preview" && state === "stale" ? 7200000 : 0),
-    stale: mode === "preview" && state === "stale" } });
-  const fail = (res, error) => res.status(error.message === "invalid_query" ? 400 : 503)
-    .json({ ok: false, error: error.message === "invalid_query" ? "invalid_query" : "predictions_unavailable" });
-  // Deterministic UI states are only accepted in synthetic mode.
-  router.use((req, res, next) => {
-    if (mode === "preview" && req.query.state === "unavailable") {
-      return res.status(503).json({ ok: false, error: "preview_backend_unavailable" });
-    }
-    next();
-  });
+  const envelope = data => ({ ok: true, data, meta: { contractVersion: 1,
+    mode: "live", updatedAt: Date.now(), refreshIntervalMs: 15000 } });
   router.get("/config", (req, res) => res.json(envelope({ columns: COLUMNS,
-    ranking: { metric: "netProfit", ties: "competition", minimumGames, inactive: "included" },
-    publicPolicy: approvedPolicy ? "approved" : "pending",
-    publicAvailable: mode === "preview" || approvedPolicy, wagering: "discord" })));
+    ranking: { metric: "netProfit", ties: "competition", minimumGames: 0, participation: "all_accounts", inactive: "included" },
+    wagering: "discord" })));
   router.get("/standings", (req, res) => {
-    if (mode === "live" && !approvedPolicy) return res.status(403).json({ ok: false, error: "public_policy_not_approved" });
     try {
       const query = pageQuery(req.query);
-      const rows = mode === "preview" ? (req.query.state === "empty" ? [] : publicRows) : repository.publicRows(consents, minimumGames);
-      const response = envelope({ columns: COLUMNS, ...standings(rows, query) }, req.query.state);
-      res.json(response);
-    } catch (error) { fail(res, error); }
+      const rows = getRepository().publicRows();
+      res.json(envelope({ columns: COLUMNS, ...standings(rows, query) }));
+    } catch (error) {
+      const invalid = error.message === "invalid_query";
+      const known = ["predictions_database_unavailable", "predictions_schema_unavailable", "predictions_configuration_unavailable"];
+      res.status(invalid ? 400 : 503).json({ ok: false,
+        error: invalid ? "invalid_query" : known.includes(error.code) ? error.code : "predictions_unavailable" });
+    }
   });
-  // No mutation endpoints for accounts, stakes, payouts, or consent.
+  // Aggregate standings only: no per-account, financial-write or login endpoints.
   router.use((req, res) => res.status(404).json({ ok: false, error: "predictions_endpoint_not_found" }));
   return router;
 }

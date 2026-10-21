@@ -83,9 +83,9 @@ function createApp({
   // CORS
   app.use(createCorsMiddleware(CORS_ORIGIN));
 
-  // Prediction staging is isolated and disabled unless explicitly configured.
+  // Live prediction standings read the existing configured ELO database.
   // Keep existing rate limits and omit prediction API traffic from analytics.
-  if (process.env.PREDICTIONS_WEB_MODE && process.env.PREDICTIONS_WEB_MODE !== "off") {
+  if (process.env.PREDICTIONS_WEB_MODE !== "off") {
     const { predictionRuntime } = require("./predictions/runtime");
     const predictions = predictionRuntime();
     app.use("/api/predictions", predictions.router);

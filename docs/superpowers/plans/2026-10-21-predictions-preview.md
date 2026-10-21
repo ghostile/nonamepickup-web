@@ -1,15 +1,14 @@
-# Prediction Website Implementation Record
+# Live Prediction Standings Implementation Record
 
-## Current scope (user approved October 21)
+Owner approved live feeds, inclusion of everyone and zero minimum games on October 21. Continue on main per user request.
 
-Public standings and rules; existing bot Discord IDs are internal matching keys. No website login or personal pages. Keep production disconnected until separately configured/approved.
+- [x] Remove demo data/server, preview script/labels and opt-in/minimum gates.
+- [x] Query all existing prediction accounts and saved player names read-only; keep private fields out of responses.
+- [x] Add 15-second visible-page refresh, request timeout and honest stale/unavailable states.
+- [x] Use PM2 tfcapi existing ELO_DB; isolate schema/database failures from the main API and retry setup.
+- [x] Update documentation and rules to approved real publication policy.
+- [x] Complete syntax/whitespace, desktop/mobile unavailable-state inspection and static review.
 
-- [x] Remove My Predictions page, OAuth module/options, /me routes and private repository methods.
-- [x] Remove private mock data, account JS/CSS, links and obsolete account screenshots.
-- [x] Preserve aggregate accounting, sorting/paging and read-only integration boundary.
-- [x] Rewrite current API/setup documentation with no OAuth requirements.
-- [x] Verify syntax/whitespace, desktop/mobile standings/rules and removal; complete static review.
+No tests created/modified/run. No live server/database access or deployment; server must pull main and restart tfcapi using ecosystem configuration.
 
-No tests created/modified/run (AGENTS.md). Original three-page preview was superseded by the user's approved standings-only change. Keep NN // TFC header, Inter/Orbitron, dark surfaces and all unrelated site navigation. No bot modifications, database mutations, live activation, merge or deployment.
-
-Verification: JavaScript syntax checks passed. Refreshed desktop/mobile screenshots; navigation contains only Standings and How it works, mobile body width matches the 390px viewport, and the browser reported no JavaScript errors. Static review found the rules heading selector was removed with account styles; restored its existing declarations. No other actionable findings.
+Verification: syntax/whitespace passed; desktop/mobile showed the real unavailable state with no fictional rows, mobile width matched 390px viewport, and browser reported no JavaScript errors. Static review found polling needed restarting after Back/Forward cache restoration; added pageshow handling. No other actionable review findings. No tests run.

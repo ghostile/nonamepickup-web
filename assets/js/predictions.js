@@ -4,8 +4,6 @@
   const view = document.body.dataset.predictionView;
   if (view !== "standings") return;
   const $ = id => document.getElementById(id);
-  const params = new URLSearchParams(location.search);
-  const state = ["empty", "unavailable", "stale"].includes(params.get("state")) ? params.get("state") : null;
   const number = value => value == null ? "—" : Number(value).toLocaleString("en-US");
   const signed = value => value == null ? "—" : `${value > 0 ? "+" : value < 0 ? "−" : ""}${number(Math.abs(value))}`;
   const percent = value => value == null ? "—" : `${(value * 100).toFixed(1)}%`;
@@ -15,7 +13,7 @@
     if (className) element.className = className;
     return element;
   };
-  let page = 1, pages = 1, controller;
+  let page = 1, pages = 1, controller, lastData = null, busy = false;
   let sort = "netProfit", direction = "desc";
   const endpoint = "standings";
   const columnCount = 5;
@@ -47,7 +45,7 @@
       if (player.rank <= 3) row.className = "prediction-top";
       const name = node("td");
       const label = node("span", undefined, "prediction-player");
-      const initial = node("span", player.displayName.replace(/^Demo /, "").charAt(0), "prediction-initial");
+      const initial = node("span", player.displayName.trim().charAt(0), "prediction-initial");
       initial.setAttribute("aria-hidden", "true");
       label.append(initial, node("span", player.displayName)); name.append(label);
       row.append(node("td", `#${number(player.rank)}`, "prediction-rank"), name,
@@ -57,34 +55,52 @@
     if (!data.rows.length) message("No players match this view. Try another search or check back after players join.");
     pager(data);
   }
-  async function load() {
+  async function load({ background = false } = {}) {
+    if (background && (document.hidden || busy)) return;
     controller?.abort(); controller = new AbortController();
+    busy = true;
     const active = controller;
     $("prediction-table").setAttribute("aria-busy", "true");
     $("prediction-prev").disabled = true; $("prediction-next").disabled = true;
-    message("Loading predictions…");
+    if (!background) { lastData = null; message("Loading predictions…"); }
+    let timedOut = false;
+    const timeout = setTimeout(() => { timedOut = true; active.abort(); }, 10000);
     try {
       const query = new URLSearchParams({ page, pageSize: $("prediction-size").value });
       query.set("sort", sort); query.set("direction", direction);
       query.set("search", $("prediction-search").value.trim());
-      if (state) query.set("state", state);
       const response = await fetch(`/api/predictions/${endpoint}?${query}`, { cache: "no-store", signal: active.signal });
-      if (!response.ok) throw new Error("unavailable");
       const result = await response.json();
-      if (!result.ok) throw new Error("unavailable");
-      $("prediction-banner").hidden = !result.meta.synthetic;
+      if (!response.ok || !result.ok) throw new Error(result.error || "unavailable");
+      lastData = result.data;
       renderStandings(result.data);
-      $("prediction-updated").textContent = `${result.meta.stale ? "Stale preview · " : "Updated "}${new Date(result.meta.updatedAt).toLocaleString()}`;
-      $("prediction-stale").hidden = !result.meta.stale;
+      $("prediction-updated").textContent = `Updated ${new Date(result.meta.updatedAt).toLocaleString()}`;
+      $("prediction-stale").hidden = true;
     } catch (error) {
-      if (error.name !== "AbortError") {
-        message("Predictions are unavailable. Please try again shortly.", true);
-        $("prediction-updated").textContent = "Backend unavailable";
+      if (active === controller && (error.name !== "AbortError" || timedOut)) {
+        if (background && lastData) {
+          $("prediction-stale").hidden = false;
+          pager(lastData);
+        } else {
+          const messages = {
+            predictions_schema_unavailable: "The bot prediction database is not ready. Standings will appear when its prediction schema is available.",
+            predictions_database_unavailable: "The prediction database cannot be read. Please try again shortly.",
+            predictions_configuration_unavailable: "Live prediction updates need the server configuration refreshed."
+          };
+          message(messages[error.message] || "Predictions are unavailable. Please try again shortly.", true);
+          $("prediction-updated").textContent = "Live updates unavailable";
+          $("prediction-stale").hidden = true;
+        }
       }
     } finally {
-      if (active === controller) $("prediction-table").setAttribute("aria-busy", "false");
+      clearTimeout(timeout);
+      if (active === controller) {
+        busy = false;
+        $("prediction-table").setAttribute("aria-busy", "false");
+      }
     }
   }
+
   $("prediction-prev").addEventListener("click", () => { if (page > 1) { page--; load(); } });
   $("prediction-next").addEventListener("click", () => { if (page < pages) { page++; load(); } });
   $("prediction-size").addEventListener("change", () => { page = 1; load(); });
@@ -96,5 +112,16 @@
     document.querySelectorAll("[data-sort]").forEach(item => item.closest("th").setAttribute("aria-sort", item === button ? (direction === "desc" ? "descending" : "ascending") : "none"));
     load();
   }));
+  let refreshTimer;
+  function startRefresh() {
+    clearInterval(refreshTimer);
+    refreshTimer = setInterval(() => load({ background: true }), 15000);
+  }
+  startRefresh();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) load({ background: true }); });
+  window.addEventListener("pagehide", () => { clearInterval(refreshTimer); controller?.abort(); });
+  window.addEventListener("pageshow", event => {
+    if (event.persisted) { startRefresh(); load({ background: true }); }
+  });
   load();
 })();
